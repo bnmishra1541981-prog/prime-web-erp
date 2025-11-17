@@ -1,0 +1,142 @@
+import { NavLink } from '@/components/NavLink';
+import { useLocation } from 'react-router-dom';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Package,
+  Receipt,
+  DollarSign,
+  TrendingUp,
+  Settings,
+  Building2,
+  ChevronDown,
+} from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useState } from 'react';
+
+const menuItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  {
+    title: 'Masters',
+    icon: Building2,
+    subItems: [
+      { title: 'Companies', url: '/companies', icon: Building2 },
+      { title: 'Ledgers', url: '/ledgers', icon: Users },
+    ],
+  },
+  {
+    title: 'Vouchers',
+    icon: FileText,
+    subItems: [
+      { title: 'Sales', url: '/vouchers/sales', icon: Receipt },
+      { title: 'Purchase', url: '/vouchers/purchase', icon: Package },
+      { title: 'Payment', url: '/vouchers/payment', icon: DollarSign },
+      { title: 'Receipt', url: '/vouchers/receipt', icon: DollarSign },
+    ],
+  },
+  {
+    title: 'Reports',
+    icon: TrendingUp,
+    subItems: [
+      { title: 'Day Book', url: '/reports/daybook', icon: FileText },
+      { title: 'Ledger Report', url: '/reports/ledger', icon: Users },
+    ],
+  },
+];
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const location = useLocation();
+  const [openGroups, setOpenGroups] = useState<string[]>(['Vouchers', 'Masters']);
+  const isCollapsed = state === 'collapsed';
+
+  const isActive = (path: string) => location.pathname === path;
+  
+  const toggleGroup = (title: string) => {
+    setOpenGroups((prev) =>
+      prev.includes(title) ? prev.filter((g) => g !== title) : [...prev, title]
+    );
+  };
+
+  return (
+    <Sidebar>
+      <SidebarContent>
+        {menuItems.map((item) => (
+          <SidebarGroup key={item.title}>
+            {item.subItems ? (
+              <Collapsible
+                open={openGroups.includes(item.title)}
+                onOpenChange={() => toggleGroup(item.title)}
+              >
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between w-full px-3 py-2 hover:bg-sidebar-accent rounded-md cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4" />
+                      {!isCollapsed && <span className="text-sm font-medium">{item.title}</span>}
+                    </div>
+                    {!isCollapsed && (
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          openGroups.includes(item.title) ? 'rotate-180' : ''
+                        }`}
+                      />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-1 mt-1">
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {item.subItems.map((subItem) => (
+                        <SidebarMenuItem key={subItem.title}>
+                          <SidebarMenuButton asChild>
+                            <NavLink
+                              to={subItem.url}
+                              end
+                              className="hover:bg-sidebar-accent"
+                              activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                            >
+                              <subItem.icon className="h-4 w-4 mr-2" />
+                              {!isCollapsed && <span>{subItem.title}</span>}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      end
+                      className="hover:bg-sidebar-accent"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4 mr-2" />
+                      {!isCollapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            )}
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+    </Sidebar>
+  );
+}
