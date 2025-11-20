@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Loader2, Printer, Download, Plus, Minus, TrendingUp, TrendingDown, FileDown } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import jsPDF from 'jspdf';
@@ -178,9 +179,31 @@ export default function ProfitAndLoss() {
     pdf.save('Profit-Loss-Statement.pdf');
   };
 
-  const totalIncome = incomeData.reduce((sum, row) => sum + row.amount, 0);
-  const totalExpense = expenseData.reduce((sum, row) => sum + row.amount, 0);
-  const netProfit = totalIncome - totalExpense;
+  // Calculate gross profit
+  const totalSales = incomeData
+    .filter(i => i.groupName === "Sales Accounts")
+    .reduce((sum, item) => sum + item.amount, 0);
+  
+  const openingStock = 0; // This should come from stock_items opening_value
+  const totalPurchases = expenseData
+    .filter(e => e.groupName === "Purchase Accounts")
+    .reduce((sum, item) => sum + item.amount, 0);
+  
+  const totalDirectExpenses = expenseData
+    .filter(e => e.groupName === "Direct Expenses")
+    .reduce((sum, item) => sum + item.amount, 0);
+  
+  const grossProfit = totalSales - (openingStock + totalPurchases + totalDirectExpenses);
+  
+  const totalIndirectExpenses = expenseData
+    .filter(e => e.groupName === "Indirect Expenses")
+    .reduce((sum, item) => sum + item.amount, 0);
+  
+  const totalIndirectIncome = incomeData
+    .filter(i => i.groupName === "Direct Incomes" || i.groupName === "Indirect Incomes")
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  const netProfit = grossProfit + totalIndirectIncome - totalIndirectExpenses;
 
   const expenseGroups = groupByCategory(expenseData);
   const incomeGroups = groupByCategory(incomeData);
@@ -269,86 +292,247 @@ export default function ProfitAndLoss() {
                 toDate={toDate}
                 expenditure={expenseData}
                 income={incomeData}
-                totalExpenditure={totalExpense}
-                totalIncome={totalIncome}
-                netProfit={netProfit}
-                netLoss={Math.abs(netProfit < 0 ? netProfit : 0)}
+                totalExpenditure={totalDirectExpenses + totalPurchases + totalIndirectExpenses}
+                totalIncome={totalSales + totalIndirectIncome}
+                netProfit={netProfit > 0 ? netProfit : 0}
+                netLoss={netProfit < 0 ? Math.abs(netProfit) : 0}
               />
             )}
           </div>
 
-          {/* Screen Display */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <div className="p-4 bg-muted font-bold">EXPENSES</div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Particulars</TableHead>
-                    <TableHead className="text-right">Amount (₹)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {expenseData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{row.ledgerName}</TableCell>
-                      <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {netProfit > 0 && (
-                    <TableRow className="font-bold bg-muted">
-                      <TableCell>Net Profit</TableCell>
-                      <TableCell className="text-right">{netProfit.toFixed(2)}</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell className="font-bold">Total</TableCell>
-                    <TableCell className="text-right font-bold">
-                      {(totalExpense + (netProfit > 0 ? netProfit : 0)).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </Card>
+          {/* Display Component */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 gap-8">
+                {/* Left Side - Expenses */}
+                <div>
+                  <h3 className="font-bold text-lg mb-4 border-b pb-2">Expenditure</h3>
+                  <Table>
+                    <TableBody>
+                      {/* Opening Stock */}
+                      <TableRow>
+                        <TableCell className="font-medium">Opening Stock</TableCell>
+                        <TableCell className="text-right">{openingStock.toFixed(2)}</TableCell>
+                      </TableRow>
 
-            <Card>
-              <div className="p-4 bg-muted font-bold">INCOME</div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Particulars</TableHead>
-                    <TableHead className="text-right">Amount (₹)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {incomeData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{row.ledgerName}</TableCell>
-                      <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {netProfit < 0 && (
-                    <TableRow className="font-bold bg-destructive/10">
-                      <TableCell>Net Loss</TableCell>
-                      <TableCell className="text-right">{Math.abs(netProfit).toFixed(2)}</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell className="font-bold">Total</TableCell>
-                    <TableCell className="text-right font-bold">
-                      {(totalIncome + (netProfit < 0 ? Math.abs(netProfit) : 0)).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </Card>
-          </div>
+                      {/* Purchase Accounts */}
+                      {expenseGroups["Purchase Accounts"] && (
+                        <>
+                          <TableRow 
+                            className="cursor-pointer hover:bg-accent"
+                            onClick={() => toggleGroup("Purchase Accounts")}
+                          >
+                            <TableCell className="font-medium">
+                              {expandedGroups.has("Purchase Accounts") ? "−" : "+"} Purchase Accounts
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {totalPurchases.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                          {expandedGroups.has("Purchase Accounts") && 
+                            expenseGroups["Purchase Accounts"].map((item, idx) => (
+                              <TableRow key={`purchase-${idx}`}>
+                                <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
+                                <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))
+                          }
+                        </>
+                      )}
+
+                      {/* Direct Expenses */}
+                      {expenseGroups["Direct Expenses"] && (
+                        <>
+                          <TableRow 
+                            className="cursor-pointer hover:bg-accent"
+                            onClick={() => toggleGroup("Direct Expenses")}
+                          >
+                            <TableCell className="font-medium">
+                              {expandedGroups.has("Direct Expenses") ? "−" : "+"} Direct Expenses
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {totalDirectExpenses.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                          {expandedGroups.has("Direct Expenses") && 
+                            expenseGroups["Direct Expenses"].map((item, idx) => (
+                              <TableRow key={`direct-exp-${idx}`}>
+                                <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
+                                <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))
+                          }
+                        </>
+                      )}
+
+                      {/* Gross Profit */}
+                      {grossProfit > 0 && (
+                        <TableRow className="font-bold border-t">
+                          <TableCell>Gross Profit c/o</TableCell>
+                          <TableCell className="text-right">{grossProfit.toFixed(2)}</TableCell>
+                        </TableRow>
+                      )}
+
+                      <TableRow className="font-bold border-t border-b-2">
+                        <TableCell></TableCell>
+                        <TableCell className="text-right">
+                          {(openingStock + totalPurchases + totalDirectExpenses + Math.max(0, grossProfit)).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Indirect Expenses */}
+                      {expenseGroups["Indirect Expenses"] && (
+                        <>
+                          <TableRow 
+                            className="cursor-pointer hover:bg-accent"
+                            onClick={() => toggleGroup("Indirect Expenses")}
+                          >
+                            <TableCell className="font-medium">
+                              {expandedGroups.has("Indirect Expenses") ? "−" : "+"} Indirect Expenses
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {totalIndirectExpenses.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                          {expandedGroups.has("Indirect Expenses") && 
+                            expenseGroups["Indirect Expenses"].map((item, idx) => (
+                              <TableRow key={`indirect-exp-${idx}`}>
+                                <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
+                                <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))
+                          }
+                        </>
+                      )}
+
+                      {/* Net Profit */}
+                      {netProfit > 0 && (
+                        <TableRow className="font-bold border-t">
+                          <TableCell>Net Profit</TableCell>
+                          <TableCell className="text-right">{netProfit.toFixed(2)}</TableCell>
+                        </TableRow>
+                      )}
+
+                      <TableRow className="font-bold border-t-2">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-right">
+                          {(totalIndirectExpenses + Math.max(0, netProfit) + (grossProfit < 0 ? Math.abs(grossProfit) : 0)).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Right Side - Income */}
+                <div>
+                  <h3 className="font-bold text-lg mb-4 border-b pb-2">Income</h3>
+                  <Table>
+                    <TableBody>
+                      {/* Sales Accounts */}
+                      {incomeGroups["Sales Accounts"] && (
+                        <>
+                          <TableRow 
+                            className="cursor-pointer hover:bg-accent"
+                            onClick={() => toggleGroup("Sales Accounts")}
+                          >
+                            <TableCell className="font-medium">
+                              {expandedGroups.has("Sales Accounts") ? "−" : "+"} Sales Accounts
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {totalSales.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                          {expandedGroups.has("Sales Accounts") && 
+                            incomeGroups["Sales Accounts"].map((item, idx) => (
+                              <TableRow key={`sales-${idx}`}>
+                                <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
+                                <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))
+                          }
+                        </>
+                      )}
+
+                      {/* Gross Loss */}
+                      {grossProfit < 0 && (
+                        <TableRow className="font-bold border-t">
+                          <TableCell>Gross Loss b/d</TableCell>
+                          <TableCell className="text-right">{Math.abs(grossProfit).toFixed(2)}</TableCell>
+                        </TableRow>
+                      )}
+
+                      <TableRow className="font-bold border-t border-b-2">
+                        <TableCell></TableCell>
+                        <TableCell className="text-right">
+                          {(totalSales + (grossProfit < 0 ? Math.abs(grossProfit) : 0)).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Gross Profit brought down */}
+                      {grossProfit > 0 && (
+                        <TableRow className="font-bold">
+                          <TableCell>Gross Profit b/d</TableCell>
+                          <TableCell className="text-right">{grossProfit.toFixed(2)}</TableCell>
+                        </TableRow>
+                      )}
+
+                      {/* Indirect Income */}
+                      {(incomeGroups["Direct Incomes"] || incomeGroups["Indirect Incomes"]) && (
+                        <>
+                          <TableRow 
+                            className="cursor-pointer hover:bg-accent"
+                            onClick={() => toggleGroup("Indirect Incomes")}
+                          >
+                            <TableCell className="font-medium">
+                              {expandedGroups.has("Indirect Incomes") ? "−" : "+"} Indirect Incomes
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {totalIndirectIncome.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                          {expandedGroups.has("Indirect Incomes") && 
+                            [...(incomeGroups["Direct Incomes"] || []), ...(incomeGroups["Indirect Incomes"] || [])].map((item, idx) => (
+                              <TableRow key={`indirect-inc-${idx}`}>
+                                <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
+                                <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))
+                          }
+                        </>
+                      )}
+
+                      {/* Net Loss */}
+                      {netProfit < 0 && (
+                        <TableRow className="font-bold border-t">
+                          <TableCell>Net Loss</TableCell>
+                          <TableCell className="text-right">{Math.abs(netProfit).toFixed(2)}</TableCell>
+                        </TableRow>
+                      )}
+
+                      <TableRow className="font-bold border-t-2">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-right">
+                          {(Math.max(0, grossProfit) + totalIndirectIncome + Math.max(0, -netProfit)).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </>
-      ) : null}
+      ) : (
+        loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <Card className="p-6 text-center text-muted-foreground">
+            No data available for the selected period
+          </Card>
+        )
+      )}
     </div>
   );
 }
