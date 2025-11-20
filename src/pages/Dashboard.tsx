@@ -50,6 +50,15 @@ const Dashboard = () => {
     fetchDashboardStats();
   }, []);
 
+  // Add a refetch mechanism on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchDashboardStats();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
@@ -178,18 +187,27 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6" key={companyId}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Welcome to your ERP dashboard</p>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString('en-IN', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => fetchDashboardStats()}
+          >
+            Refresh Data
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            {new Date().toLocaleDateString('en-IN', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </div>
         </div>
       </div>
 
