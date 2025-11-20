@@ -1,12 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, ShoppingCart, Package, AlertCircle } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, Package, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-
-  const stats = [
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState([
     {
       title: 'Total Sales',
       value: '₹0.00',
@@ -33,7 +37,128 @@ const Dashboard = () => {
       icon: DollarSign,
       color: 'text-destructive',
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Get user's company
+      const { data: companies } = await supabase
+        .from('companies')
+        .select('id')
+        .limit(1);
+
+      if (!companies || companies.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const companyId = companies[0].id;
+
+      // Fetch vouchers and ledgers
+      const [{ data: vouchers }, { data: ledgers }, { data: entries }] = await Promise.all([
+        supabase
+          .from('vouchers')
+          .select('voucher_type, total_amount')
+          .eq('company_id', companyId),
+        supabase
+          .from('ledgers')
+          .select('ledger_type, current_balance, opening_balance')
+          .eq('company_id', companyId),
+        supabase
+          .from('voucher_entries')
+          .select(`
+            *,
+            vouchers!inner(company_id),
+            ledgers!inner(ledger_type)
+          `)
+          .eq('vouchers.company_id', companyId)
+      ]);
+
+      // Calculate totals by voucher type
+      let totalSales = 0;
+      let totalPurchase = 0;
+      let receivables = 0;
+      let payables = 0;
+
+      vouchers?.forEach((voucher) => {
+        switch (voucher.voucher_type) {
+          case 'sales':
+            totalSales += Number(voucher.total_amount);
+            break;
+          case 'purchase':
+            totalPurchase += Number(voucher.total_amount);
+            break;
+        }
+      });
+
+      // Calculate receivables (debtors balance)
+      ledgers?.forEach((ledger) => {
+        if (ledger.ledger_type === 'sundry_debtors') {
+          const balance = Number(ledger.opening_balance || 0);
+          const currentBalance = entries?.filter((e: any) => 
+            e.ledger_id && e.ledgers.ledger_type === 'sundry_debtors'
+          ).reduce((sum, e) => 
+            sum + Number(e.debit_amount || 0) - Number(e.credit_amount || 0), 
+            balance
+          );
+          receivables += currentBalance || 0;
+        }
+        if (ledger.ledger_type === 'sundry_creditors') {
+          const balance = Number(ledger.opening_balance || 0);
+          const currentBalance = entries?.filter((e: any) => 
+            e.ledger_id && e.ledgers.ledger_type === 'sundry_creditors'
+          ).reduce((sum, e) => 
+            sum + Number(e.credit_amount || 0) - Number(e.debit_amount || 0), 
+            balance
+          );
+          payables += currentBalance || 0;
+        }
+      });
+
+      setStats([
+        {
+          title: 'Total Sales',
+          value: `₹${totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          change: totalSales > 0 ? '+' : '0%',
+          icon: TrendingUp,
+          color: 'text-success',
+        },
+        {
+          title: 'Total Purchase',
+          value: `₹${totalPurchase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          change: totalPurchase > 0 ? '+' : '0%',
+          icon: ShoppingCart,
+          color: 'text-primary',
+        },
+        {
+          title: 'Receivables',
+          value: `₹${receivables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          icon: DollarSign,
+          color: 'text-warning',
+        },
+        {
+          title: 'Payables',
+          value: `₹${payables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          icon: DollarSign,
+          color: 'text-destructive',
+        },
+      ]);
+    } catch (error: any) {
+      toast({
+        title: 'Error fetching dashboard data',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const quickActions = [
     { label: 'Sales Voucher', path: '/vouchers/sales' },
@@ -59,8 +184,13 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -77,8 +207,9 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <Card>
