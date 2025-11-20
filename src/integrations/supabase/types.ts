@@ -117,6 +117,44 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          channel: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          notification_id: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notification_id?: string | null
+          sent_at?: string | null
+          status: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notification_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "voucher_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company_name: string | null
@@ -191,31 +229,40 @@ export type Database = {
       }
       voucher_notifications: {
         Row: {
+          action_details: Json | null
+          approval_token: string | null
           created_at: string
           from_company_id: string
           id: string
           message: string | null
           responded_at: string | null
+          reviewer_notes: string | null
           status: Database["public"]["Enums"]["notification_status"]
           to_user_email: string
           voucher_id: string
         }
         Insert: {
+          action_details?: Json | null
+          approval_token?: string | null
           created_at?: string
           from_company_id: string
           id?: string
           message?: string | null
           responded_at?: string | null
+          reviewer_notes?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           to_user_email: string
           voucher_id: string
         }
         Update: {
+          action_details?: Json | null
+          approval_token?: string | null
           created_at?: string
           from_company_id?: string
           id?: string
           message?: string | null
           responded_at?: string | null
+          reviewer_notes?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           to_user_email?: string
           voucher_id?: string
