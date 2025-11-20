@@ -5,6 +5,7 @@ import { Printer, Download } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import solviserLogo from '@/assets/solviser-logo.png';
 
 interface InvoiceItem {
   description: string;
@@ -110,8 +111,13 @@ const InvoicePrint = forwardRef<HTMLDivElement, InvoiceProps>((props, ref) => {
       {/* Header */}
       <div className="border-2 border-black mb-4">
         <div className="bg-gray-100 p-3 border-b-2 border-black">
-          <h1 className="text-2xl font-bold text-center">{company.name}</h1>
-          {company.address && <p className="text-center text-sm">{company.address}</p>}
+          <div className="flex items-center justify-between mb-2">
+            <img src={solviserLogo} alt="Solviser" className="h-12" />
+            <div className="text-right flex-1 ml-4">
+              <h1 className="text-2xl font-bold">{company.name}</h1>
+              {company.address && <p className="text-sm">{company.address}</p>}
+            </div>
+          </div>
           <div className="flex justify-center gap-4 text-xs mt-1">
             {company.phone && <span>Ph: {company.phone}</span>}
             {company.email && <span>Email: {company.email}</span>}
