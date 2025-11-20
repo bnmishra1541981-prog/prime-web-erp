@@ -5,11 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { SalesPurchaseChart } from '@/components/dashboard/SalesPurchaseChart';
+import { CustomerAnalytics } from '@/components/dashboard/CustomerAnalytics';
+import { InventoryAnalytics } from '@/components/dashboard/InventoryAnalytics';
+import { RecentOrders } from '@/components/dashboard/RecentOrders';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string>('');
   const [stats, setStats] = useState([
     {
       title: 'Total Sales',
@@ -58,18 +63,19 @@ const Dashboard = () => {
         return;
       }
 
-      const companyId = companies[0].id;
+      const selectedCompanyId = companies[0].id;
+      setCompanyId(selectedCompanyId);
 
       // Fetch vouchers and ledgers
       const [{ data: vouchers }, { data: ledgers }, { data: entries }] = await Promise.all([
         supabase
           .from('vouchers')
           .select('voucher_type, total_amount')
-          .eq('company_id', companyId),
+          .eq('company_id', selectedCompanyId),
         supabase
           .from('ledgers')
           .select('ledger_type, current_balance, opening_balance')
-          .eq('company_id', companyId),
+          .eq('company_id', selectedCompanyId),
         supabase
           .from('voucher_entries')
           .select(`
@@ -77,7 +83,7 @@ const Dashboard = () => {
             vouchers!inner(company_id),
             ledgers!inner(ledger_type)
           `)
-          .eq('vouchers.company_id', companyId)
+          .eq('vouchers.company_id', selectedCompanyId)
       ]);
 
       // Calculate totals by voucher type
@@ -276,18 +282,17 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Activity - Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Vouchers</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>No vouchers yet. Create your first voucher to get started!</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Sales & Purchase Chart */}
+      {companyId && <SalesPurchaseChart companyId={companyId} />}
+
+      {/* Customer Analytics */}
+      {companyId && <CustomerAnalytics companyId={companyId} />}
+
+      {/* Inventory Analytics */}
+      {companyId && <InventoryAnalytics companyId={companyId} />}
+
+      {/* Recent Orders */}
+      {companyId && <RecentOrders companyId={companyId} />}
     </div>
   );
 };
