@@ -161,7 +161,7 @@ export default function BalanceSheet() {
   };
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
   });
 
   const handleDownloadPDF = async () => {
@@ -241,7 +241,7 @@ export default function BalanceSheet() {
               <TableBody>
                 {liabilitiesData.map((row, index) => (
                   <TableRow key={index}>
-                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.ledgerName}</TableCell>
                     <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
@@ -275,7 +275,7 @@ export default function BalanceSheet() {
               <TableBody>
                 {assetsData.map((row, index) => (
                   <TableRow key={index}>
-                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.ledgerName}</TableCell>
                     <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}

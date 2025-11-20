@@ -894,7 +894,13 @@ export type Database = {
         | "indirect_expenses"
         | "suspense_account"
         | "branch_divisions"
-      notification_status: "pending" | "accepted" | "rejected" | "reviewed"
+      notification_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "reviewed"
+        | "hold"
+        | "ignored"
       voucher_type:
         | "sales"
         | "purchase"
@@ -1058,7 +1064,14 @@ export const Constants = {
         "suspense_account",
         "branch_divisions",
       ],
-      notification_status: ["pending", "accepted", "rejected", "reviewed"],
+      notification_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "reviewed",
+        "hold",
+        "ignored",
+      ],
       voucher_type: [
         "sales",
         "purchase",
