@@ -34,28 +34,57 @@ export default function StockGroups() {
   }, [selectedCompany]);
 
   const fetchCompanies = async () => {
-    const { data } = await supabase.from('companies').select('*').order('name');
+    const { data, error } = await supabase.from('companies').select('*').order('name');
+    if (error) {
+      console.error('Error fetching companies:', error);
+      toast({ title: 'Error loading companies', description: error.message, variant: 'destructive' });
+      return;
+    }
     setCompanies(data || []);
-    if (data && data.length > 0) setSelectedCompany(data[0].id);
+    if (data && data.length > 0) {
+      setSelectedCompany(data[0].id);
+    } else {
+      toast({ title: 'No companies found', description: 'Please create a company first', variant: 'destructive' });
+    }
   };
 
   const fetchStockGroups = async () => {
-    const { data } = await supabase
+    if (!selectedCompany) {
+      console.log('No company selected');
+      return;
+    }
+    console.log('Fetching stock groups for company:', selectedCompany);
+    const { data, error } = await supabase
       .from('stock_groups')
       .select('*')
       .eq('company_id', selectedCompany)
       .order('name');
+    
+    if (error) {
+      console.error('Error fetching stock groups:', error);
+      toast({ title: 'Error loading stock groups', description: error.message, variant: 'destructive' });
+      return;
+    }
+    console.log('Fetched stock groups:', data);
     setStockGroups(data || []);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedCompany) {
+      toast({ title: 'No company selected', description: 'Please select a company first', variant: 'destructive' });
+      return;
+    }
+
     const payload = { ...formData, company_id: selectedCompany };
+    console.log('Submitting stock group:', payload);
 
     if (editingGroup) {
       const { error } = await supabase.from('stock_groups').update(payload).eq('id', editingGroup.id);
       if (error) {
-        toast({ title: 'Error updating stock group', variant: 'destructive' });
+        console.error('Error updating stock group:', error);
+        toast({ title: 'Error updating stock group', description: error.message, variant: 'destructive' });
       } else {
         toast({ title: 'Stock group updated successfully' });
         setOpen(false);
@@ -65,7 +94,8 @@ export default function StockGroups() {
     } else {
       const { error } = await supabase.from('stock_groups').insert(payload);
       if (error) {
-        toast({ title: 'Error creating stock group', variant: 'destructive' });
+        console.error('Error creating stock group:', error);
+        toast({ title: 'Error creating stock group', description: error.message, variant: 'destructive' });
       } else {
         toast({ title: 'Stock group created successfully' });
         setOpen(false);
@@ -87,9 +117,11 @@ export default function StockGroups() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this stock group?')) {
+      console.log('Deleting stock group:', id);
       const { error } = await supabase.from('stock_groups').delete().eq('id', id);
       if (error) {
-        toast({ title: 'Error deleting stock group', variant: 'destructive' });
+        console.error('Error deleting stock group:', error);
+        toast({ title: 'Error deleting stock group', description: error.message, variant: 'destructive' });
       } else {
         toast({ title: 'Stock group deleted successfully' });
         fetchStockGroups();
@@ -178,24 +210,32 @@ export default function StockGroups() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stockGroups.map((group) => (
-              <TableRow key={group.id}>
-                <TableCell className="font-medium">{group.name}</TableCell>
-                <TableCell>
-                  {group.parent_group_id
-                    ? stockGroups.find((g) => g.id === group.parent_group_id)?.name || 'N/A'
-                    : 'Primary'}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(group)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(group.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+            {stockGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  No stock groups found. Click "New Stock Group" to create one.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              stockGroups.map((group) => (
+                <TableRow key={group.id}>
+                  <TableCell className="font-medium">{group.name}</TableCell>
+                  <TableCell>
+                    {group.parent_group_id
+                      ? stockGroups.find((g) => g.id === group.parent_group_id)?.name || 'N/A'
+                      : 'Primary'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(group)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(group.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Card>
