@@ -66,6 +66,10 @@ All colors MUST be HSL.
     --table-header: 215 20% 96%;
     --table-row-even: 215 10% 98%;
     --table-row-odd: 0 0% 100%;
+    
+    /* Solviser Brand Color */
+    --solviser-primary: 9 89% 57%; /* #f05134 */
+    --solviser-primary-hover: 9 89% 47%;
   }
 
   .dark {
