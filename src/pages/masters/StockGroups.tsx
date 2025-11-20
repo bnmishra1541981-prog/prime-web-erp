@@ -78,7 +78,12 @@ export default function StockGroups() {
       return;
     }
 
-    const payload = { ...formData, company_id: selectedCompany };
+    // Convert "none" back to null for parent_group_id
+    const payload = { 
+      ...formData, 
+      parent_group_id: formData.parent_group_id === 'none' ? null : formData.parent_group_id,
+      company_id: selectedCompany 
+    };
     console.log('Submitting stock group:', payload);
 
     if (editingGroup) {
@@ -110,7 +115,7 @@ export default function StockGroups() {
     setEditingGroup(group);
     setFormData({
       name: group.name,
-      parent_group_id: group.parent_group_id || '',
+      parent_group_id: group.parent_group_id || 'none',
       under_group: group.under_group || '',
     });
     setOpen(true);
@@ -131,7 +136,7 @@ export default function StockGroups() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', parent_group_id: '', under_group: '' });
+    setFormData({ name: '', parent_group_id: 'none', under_group: '' });
     setEditingGroup(null);
   };
 
@@ -302,7 +307,7 @@ export default function StockGroups() {
                       <SelectValue placeholder="Select Parent Group" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Primary</SelectItem>
+                      <SelectItem value="none">Primary</SelectItem>
                       {stockGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.name}
