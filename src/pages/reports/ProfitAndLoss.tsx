@@ -11,11 +11,13 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { ProfitLossPrint } from '@/components/reports/ProfitLossPrint';
+import { LedgerTransactionDialog } from '@/components/reports/LedgerTransactionDialog';
 
 interface LedgerEntry {
   ledgerName: string;
   groupName: string;
   amount: number;
+  ledgerId?: string;
 }
 
 export default function ProfitAndLoss() {
@@ -27,6 +29,8 @@ export default function ProfitAndLoss() {
   const [incomeData, setIncomeData] = useState<LedgerEntry[]>([]);
   const [expenseData, setExpenseData] = useState<LedgerEntry[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedLedger, setSelectedLedger] = useState<{ id: string; name: string } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -110,6 +114,7 @@ export default function ProfitAndLoss() {
           ledgerName: ledger.name,
           groupName: formatGroupName(ledger.ledger_type),
           amount,
+          ledgerId: ledger.id,
         };
       }) || [];
 
@@ -120,6 +125,7 @@ export default function ProfitAndLoss() {
           ledgerName: ledger.name,
           groupName: formatGroupName(ledger.ledger_type),
           amount,
+          ledgerId: ledger.id,
         };
       }) || [];
 
@@ -163,6 +169,11 @@ export default function ProfitAndLoss() {
       newExpanded.add(groupName);
     }
     setExpandedGroups(newExpanded);
+  };
+
+  const handleLedgerClick = (ledgerId: string, ledgerName: string) => {
+    setSelectedLedger({ id: ledgerId, name: ledgerName });
+    setDialogOpen(true);
   };
 
   const handlePrint = useReactToPrint({
@@ -332,7 +343,11 @@ export default function ProfitAndLoss() {
                           </TableRow>
                           {expandedGroups.has("Purchase Accounts") && 
                             expenseGroups["Purchase Accounts"].map((item, idx) => (
-                              <TableRow key={`purchase-${idx}`}>
+                              <TableRow 
+                                key={`purchase-${idx}`}
+                                className="cursor-pointer hover:bg-accent/50"
+                                onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
+                              >
                                 <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
                                 <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
                               </TableRow>
@@ -357,7 +372,11 @@ export default function ProfitAndLoss() {
                           </TableRow>
                           {expandedGroups.has("Direct Expenses") && 
                             expenseGroups["Direct Expenses"].map((item, idx) => (
-                              <TableRow key={`direct-exp-${idx}`}>
+                              <TableRow 
+                                key={`direct-exp-${idx}`}
+                                className="cursor-pointer hover:bg-accent/50"
+                                onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
+                              >
                                 <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
                                 <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
                               </TableRow>
@@ -397,7 +416,11 @@ export default function ProfitAndLoss() {
                           </TableRow>
                           {expandedGroups.has("Indirect Expenses") && 
                             expenseGroups["Indirect Expenses"].map((item, idx) => (
-                              <TableRow key={`indirect-exp-${idx}`}>
+                              <TableRow 
+                                key={`indirect-exp-${idx}`}
+                                className="cursor-pointer hover:bg-accent/50"
+                                onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
+                              >
                                 <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
                                 <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
                               </TableRow>
@@ -445,7 +468,11 @@ export default function ProfitAndLoss() {
                           </TableRow>
                           {expandedGroups.has("Sales Accounts") && 
                             incomeGroups["Sales Accounts"].map((item, idx) => (
-                              <TableRow key={`sales-${idx}`}>
+                              <TableRow 
+                                key={`sales-${idx}`}
+                                className="cursor-pointer hover:bg-accent/50"
+                                onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
+                              >
                                 <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
                                 <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
                               </TableRow>
@@ -493,7 +520,11 @@ export default function ProfitAndLoss() {
                           </TableRow>
                           {expandedGroups.has("Indirect Incomes") && 
                             [...(incomeGroups["Direct Incomes"] || []), ...(incomeGroups["Indirect Incomes"] || [])].map((item, idx) => (
-                              <TableRow key={`indirect-inc-${idx}`}>
+                              <TableRow 
+                                key={`indirect-inc-${idx}`}
+                                className="cursor-pointer hover:bg-accent/50"
+                                onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
+                              >
                                 <TableCell className="pl-8 text-sm">{item.ledgerName}</TableCell>
                                 <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
                               </TableRow>
@@ -534,6 +565,16 @@ export default function ProfitAndLoss() {
           </Card>
         )
       )}
+
+      <LedgerTransactionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        ledgerId={selectedLedger?.id || null}
+        ledgerName={selectedLedger?.name || ''}
+        companyId={selectedCompany}
+        fromDate={fromDate}
+        toDate={toDate}
+      />
     </div>
   );
 }
