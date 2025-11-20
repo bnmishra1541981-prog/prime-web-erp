@@ -220,9 +220,6 @@ export default function ProfitAndLoss() {
             <Button onClick={fetchProfitAndLoss} disabled={loading} className="flex-1">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
             </Button>
-            <Button variant="outline" disabled={incomeData.length === 0}>
-              <FileDown className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </Card>

@@ -219,9 +219,6 @@ export default function BalanceSheet() {
             <Button onClick={fetchBalanceSheet} disabled={loading} className="flex-1">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
             </Button>
-            <Button variant="outline" disabled={liabilitiesData.length === 0}>
-              <FileDown className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </Card>
