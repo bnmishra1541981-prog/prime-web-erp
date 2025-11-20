@@ -18,10 +18,10 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    /* Primary: Professional blue similar to Tally */
-    --primary: 215 85% 35%;
+    /* Primary: Solviser Brand Color */
+    --primary: 9 89% 57%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 215 85% 30%;
+    --primary-hover: 9 89% 47%;
 
     /* Secondary: Light gray for subtle backgrounds */
     --secondary: 215 15% 95%;
@@ -30,8 +30,8 @@ All colors MUST be HSL.
     --muted: 215 15% 93%;
     --muted-foreground: 215 15% 45%;
 
-    /* Accent: Vibrant blue for highlights */
-    --accent: 215 90% 55%;
+    /* Accent: Solviser accent color */
+    --accent: 9 89% 57%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -47,19 +47,19 @@ All colors MUST be HSL.
 
     --border: 215 15% 88%;
     --input: 215 15% 88%;
-    --ring: 215 85% 35%;
+    --ring: 9 89% 57%;
 
     --radius: 0.375rem;
 
-    /* Sidebar colors - Tally style */
+    /* Sidebar colors - Solviser style */
     --sidebar-background: 215 20% 97%;
     --sidebar-foreground: 215 25% 20%;
-    --sidebar-primary: 215 85% 35%;
+    --sidebar-primary: 9 89% 57%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 85% 92%;
+    --sidebar-accent: 9 30% 95%;
     --sidebar-accent-foreground: 215 25% 20%;
     --sidebar-border: 215 15% 88%;
-    --sidebar-ring: 215 85% 35%;
+    --sidebar-ring: 9 89% 57%;
 
     /* Tally-specific colors */
     --voucher-bg: 0 0% 100%;
@@ -82,9 +82,9 @@ All colors MUST be HSL.
     --popover: 215 25% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 215 85% 55%;
-    --primary-foreground: 215 25% 10%;
-    --primary-hover: 215 85% 60%;
+    --primary: 9 89% 57%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 9 89% 47%;
 
     --secondary: 215 20% 18%;
     --secondary-foreground: 0 0% 98%;
@@ -92,8 +92,8 @@ All colors MUST be HSL.
     --muted: 215 20% 18%;
     --muted-foreground: 215 10% 65%;
 
-    --accent: 215 85% 55%;
-    --accent-foreground: 215 25% 10%;
+    --accent: 9 89% 57%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -106,16 +106,16 @@ All colors MUST be HSL.
 
     --border: 215 20% 20%;
     --input: 215 20% 20%;
-    --ring: 215 85% 55%;
+    --ring: 9 89% 57%;
 
     --sidebar-background: 215 25% 12%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 215 85% 55%;
-    --sidebar-primary-foreground: 215 25% 10%;
+    --sidebar-primary: 9 89% 57%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 25% 18%;
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 215 20% 20%;
-    --sidebar-ring: 215 85% 55%;
+    --sidebar-ring: 9 89% 57%;
 
     --voucher-bg: 215 25% 12%;
     --table-header: 215 25% 15%;
