@@ -17,6 +17,7 @@ import ReceiptVoucher from "./pages/vouchers/ReceiptVoucher";
 import DayBook from "./pages/reports/DayBook";
 import LedgerReport from "./pages/reports/LedgerReport";
 import InvoiceDemo from "./pages/InvoiceDemo";
+import Notifications from "./pages/Notifications";
 import { MainLayout } from "./components/MainLayout";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -130,6 +131,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <LedgerReport />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         }
       />

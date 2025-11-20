@@ -22,12 +22,14 @@ import {
   Settings,
   Building2,
   ChevronDown,
+  Bell,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Notifications', url: '/notifications', icon: Bell },
   {
     title: 'Masters',
     icon: Building2,

@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Send } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type VoucherType = Database['public']['Enums']['voucher_type'];
 
@@ -40,6 +41,10 @@ export const VoucherForm = ({ voucherType, onSuccess }: VoucherFormProps) => {
     { ledger_id: '', debit_amount: '0', credit_amount: '0', narration: '' },
   ]);
   const [loading, setLoading] = useState(false);
+  const [notificationDialog, setNotificationDialog] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [lastVoucherId, setLastVoucherId] = useState('');
 
   useEffect(() => {
     fetchInitialData();
@@ -126,12 +131,42 @@ export const VoucherForm = ({ voucherType, onSuccess }: VoucherFormProps) => {
       if (entriesError) throw entriesError;
 
       toast.success('Voucher created successfully');
+      setLastVoucherId(voucherData.id);
       resetForm();
       onSuccess();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendNotification = async () => {
+    if (!notificationEmail || !lastVoucherId) {
+      toast.error('Please enter recipient email');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-voucher-notification', {
+        body: {
+          voucher_id: lastVoucherId,
+          to_user_email: notificationEmail,
+          from_company_id: formData.company_id,
+          message: notificationMessage || `New ${voucherType} voucher created for your review`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success('Notification sent successfully!');
+      setNotificationDialog(false);
+      setNotificationEmail('');
+      setNotificationMessage('');
+      setLastVoucherId('');
+    } catch (error: any) {
+      toast.error('Failed to send notification');
+      console.error(error);
     }
   };
 
@@ -306,6 +341,46 @@ export const VoucherForm = ({ voucherType, onSuccess }: VoucherFormProps) => {
             <Button type="submit" disabled={loading || Math.abs(debitTotal - creditTotal) > 0.01}>
               {loading ? 'Saving...' : 'Save Voucher'}
             </Button>
+            
+            {lastVoucherId && (
+              <Dialog open={notificationDialog} onOpenChange={setNotificationDialog}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline">
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Notification
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Send Voucher Notification</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="notif-email">Recipient Email</Label>
+                      <Input
+                        id="notif-email"
+                        type="email"
+                        placeholder="user@example.com"
+                        value={notificationEmail}
+                        onChange={(e) => setNotificationEmail(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="notif-message">Message (optional)</Label>
+                      <Textarea
+                        id="notif-message"
+                        placeholder="Add a message for the recipient..."
+                        value={notificationMessage}
+                        onChange={(e) => setNotificationMessage(e.target.value)}
+                      />
+                    </div>
+                    <Button onClick={sendNotification} className="w-full">
+                      Send Notification
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </form>
       </CardContent>
