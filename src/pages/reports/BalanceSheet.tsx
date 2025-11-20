@@ -18,8 +18,8 @@ interface LedgerEntry {
 export default function BalanceSheet() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [asOfDate, setAsOfDate] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [asOfDate, setAsOfDate] = useState('');
   const [liabilitiesData, setLiabilitiesData] = useState<LedgerEntry[]>([]);
   const [assetsData, setAssetsData] = useState<LedgerEntry[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -218,6 +218,9 @@ export default function BalanceSheet() {
           <div className="flex items-end gap-2">
             <Button onClick={fetchBalanceSheet} disabled={loading} className="flex-1">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
+            </Button>
+            <Button variant="outline" disabled={liabilitiesData.length === 0}>
+              <FileDown className="h-4 w-4" />
             </Button>
           </div>
         </div>

@@ -18,9 +18,9 @@ interface LedgerEntry {
 export default function ProfitAndLoss() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [incomeData, setIncomeData] = useState<LedgerEntry[]>([]);
   const [expenseData, setExpenseData] = useState<LedgerEntry[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -219,6 +219,9 @@ export default function ProfitAndLoss() {
           <div className="flex items-end gap-2">
             <Button onClick={fetchProfitAndLoss} disabled={loading} className="flex-1">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
+            </Button>
+            <Button variant="outline" disabled={incomeData.length === 0}>
+              <FileDown className="h-4 w-4" />
             </Button>
           </div>
         </div>
