@@ -18,9 +18,9 @@ interface LedgerEntry {
 export default function ProfitAndLoss() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
   const [incomeData, setIncomeData] = useState<LedgerEntry[]>([]);
   const [expenseData, setExpenseData] = useState<LedgerEntry[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());

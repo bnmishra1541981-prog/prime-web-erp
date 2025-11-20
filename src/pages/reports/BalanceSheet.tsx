@@ -18,8 +18,8 @@ interface LedgerEntry {
 export default function BalanceSheet() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [asOfDate, setAsOfDate] = useState('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [asOfDate, setAsOfDate] = useState<string>('');
   const [liabilitiesData, setLiabilitiesData] = useState<LedgerEntry[]>([]);
   const [assetsData, setAssetsData] = useState<LedgerEntry[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
