@@ -4,10 +4,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Loader2, Printer, Download, Plus, Minus, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, Printer, Download, Plus, Minus, TrendingUp, TrendingDown, FileDown } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 
 interface LedgerEntry {
   ledgerName: string;
@@ -151,7 +152,7 @@ export default function ProfitAndLoss() {
   };
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
   });
 
   const handleDownloadPDF = async () => {
@@ -241,7 +242,7 @@ export default function ProfitAndLoss() {
               <TableBody>
                 {expenseData.map((row, index) => (
                   <TableRow key={index}>
-                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.ledgerName}</TableCell>
                     <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
@@ -275,7 +276,7 @@ export default function ProfitAndLoss() {
               <TableBody>
                 {incomeData.map((row, index) => (
                   <TableRow key={index}>
-                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.ledgerName}</TableCell>
                     <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}

@@ -15,7 +15,7 @@ interface Notification {
   from_company_id: string;
   to_user_email: string;
   message: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'reviewed';
+  status: 'pending' | 'accepted' | 'rejected' | 'reviewed' | 'hold' | 'ignored';
   created_at: string;
   voucher: {
     voucher_number: string;
@@ -80,7 +80,7 @@ const Notifications = () => {
     }
   };
 
-  const handleAction = async (notificationId: string, action: 'accepted' | 'rejected' | 'reviewed') => {
+  const handleAction = async (notificationId: string, action: 'accepted' | 'rejected' | 'reviewed' | 'hold' | 'ignored') => {
     try {
       const notes = reviewNotes[notificationId] || '';
       
@@ -105,22 +105,26 @@ const Notifications = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
+    const variants: Record<string, any> = {
       pending: 'default',
       accepted: 'default',
       rejected: 'destructive',
       reviewed: 'secondary',
+      hold: 'outline',
+      ignored: 'secondary',
     };
 
-    const icons = {
+    const icons: Record<string, JSX.Element> = {
       pending: <Clock className="h-3 w-3" />,
       accepted: <Check className="h-3 w-3" />,
       rejected: <X className="h-3 w-3" />,
       reviewed: <Bell className="h-3 w-3" />,
+      hold: <Clock className="h-3 w-3" />,
+      ignored: <X className="h-3 w-3" />,
     };
 
     return (
-      <Badge variant={variants[status] as any} className="flex items-center gap-1">
+      <Badge variant={variants[status]} className="flex items-center gap-1">
         {icons[status]}
         {status.toUpperCase()}
       </Badge>
@@ -203,29 +207,37 @@ const Notifications = () => {
                     />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
                       onClick={() => handleAction(notification.id, 'accepted')}
-                      className="flex-1"
+                      className="w-full"
                     >
                       <Check className="h-4 w-4 mr-2" />
                       Accept
                     </Button>
                     <Button
+                      onClick={() => handleAction(notification.id, 'hold')}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      Hold
+                    </Button>
+                    <Button
                       onClick={() => handleAction(notification.id, 'reviewed')}
                       variant="secondary"
-                      className="flex-1"
+                      className="w-full"
                     >
                       <Bell className="h-4 w-4 mr-2" />
                       Review
                     </Button>
                     <Button
-                      onClick={() => handleAction(notification.id, 'rejected')}
-                      variant="destructive"
-                      className="flex-1"
+                      onClick={() => handleAction(notification.id, 'ignored')}
+                      variant="ghost"
+                      className="w-full"
                     >
                       <X className="h-4 w-4 mr-2" />
-                      Reject
+                      Ignore
                     </Button>
                   </div>
 
