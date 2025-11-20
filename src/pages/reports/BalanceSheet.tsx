@@ -11,6 +11,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { BalanceSheetPrint } from '@/components/reports/BalanceSheetPrint';
 import { LedgerTransactionDialog } from '@/components/reports/LedgerTransactionDialog';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 
 interface LedgerEntry {
   ledgerName: string;
@@ -22,6 +23,7 @@ interface LedgerEntry {
 export default function BalanceSheet() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>('');
+  const [companyCurrency, setCompanyCurrency] = useState<string>('INR');
   const [loading, setLoading] = useState(false);
   const [asOfDate, setAsOfDate] = useState('');
   const [liabilitiesData, setLiabilitiesData] = useState<LedgerEntry[]>([]);
@@ -45,7 +47,7 @@ export default function BalanceSheet() {
   const fetchCompanies = async () => {
     const { data, error } = await supabase
       .from('companies')
-      .select('*')
+      .select('id, name, currency')
       .order('name');
     
     if (error) {
@@ -54,6 +56,7 @@ export default function BalanceSheet() {
       setCompanies(data || []);
       if (data && data.length > 0) {
         setSelectedCompany(data[0].id);
+        setCompanyCurrency(data[0].currency || 'INR');
       }
       // Set default date to current date
       if (!asOfDate) {
@@ -214,7 +217,11 @@ export default function BalanceSheet() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Company</label>
-            <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+            <Select value={selectedCompany} onValueChange={(value) => {
+              setSelectedCompany(value);
+              const company = companies.find(c => c.id === value);
+              if (company) setCompanyCurrency(company.currency || 'INR');
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Company" />
               </SelectTrigger>
@@ -292,7 +299,7 @@ export default function BalanceSheet() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Particulars</TableHead>
-                    <TableHead className="text-right">Amount (₹)</TableHead>
+                    <TableHead className="text-right">Amount ({getCurrencySymbol(companyCurrency)})</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -311,7 +318,7 @@ export default function BalanceSheet() {
                             {isExpanded ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                             {groupName}
                           </TableCell>
-                          <TableCell className="text-right">{groupTotal.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(groupTotal, companyCurrency)}</TableCell>
                         </TableRow>
                         {isExpanded && items.map((item, idx) => (
                           <TableRow 
@@ -320,7 +327,7 @@ export default function BalanceSheet() {
                             onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
                           >
                             <TableCell className="pl-12">{item.ledgerName}</TableCell>
-                            <TableCell className="text-right">{item.amount.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(item.amount, companyCurrency)}</TableCell>
                           </TableRow>
                         ))}
                       </>
@@ -329,7 +336,7 @@ export default function BalanceSheet() {
                   {difference < 0 && (
                     <TableRow className="font-bold bg-primary/10">
                       <TableCell>Net Profit</TableCell>
-                      <TableCell className="text-right">{Math.abs(difference).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Math.abs(difference), companyCurrency)}</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -337,7 +344,7 @@ export default function BalanceSheet() {
                   <TableRow>
                     <TableCell className="font-bold">Gross Total</TableCell>
                     <TableCell className="text-right font-bold">
-                      {(totalLiabilities + (difference < 0 ? Math.abs(difference) : 0)).toFixed(2)}
+                      {formatCurrency(totalLiabilities + (difference < 0 ? Math.abs(difference) : 0), companyCurrency)}
                     </TableCell>
                   </TableRow>
                 </TableFooter>
@@ -350,7 +357,7 @@ export default function BalanceSheet() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Particulars</TableHead>
-                    <TableHead className="text-right">Amount (₹)</TableHead>
+                    <TableHead className="text-right">Amount ({getCurrencySymbol(companyCurrency)})</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -369,7 +376,7 @@ export default function BalanceSheet() {
                             {isExpanded ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                             {groupName}
                           </TableCell>
-                          <TableCell className="text-right">{groupTotal.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(groupTotal, companyCurrency)}</TableCell>
                         </TableRow>
                         {isExpanded && items.map((item, idx) => (
                           <TableRow 
@@ -378,7 +385,7 @@ export default function BalanceSheet() {
                             onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
                           >
                             <TableCell className="pl-12">{item.ledgerName}</TableCell>
-                            <TableCell className="text-right">{item.amount.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(item.amount, companyCurrency)}</TableCell>
                           </TableRow>
                         ))}
                       </>
@@ -387,7 +394,7 @@ export default function BalanceSheet() {
                   {difference > 0 && (
                     <TableRow className="font-bold bg-destructive/10">
                       <TableCell>Net Loss</TableCell>
-                      <TableCell className="text-right">{difference.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(difference, companyCurrency)}</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -395,7 +402,7 @@ export default function BalanceSheet() {
                   <TableRow>
                     <TableCell className="font-bold">Gross Total</TableCell>
                     <TableCell className="text-right font-bold">
-                      {(totalAssets + (difference > 0 ? difference : 0)).toFixed(2)}
+                      {formatCurrency(totalAssets + (difference > 0 ? difference : 0), companyCurrency)}
                     </TableCell>
                   </TableRow>
                 </TableFooter>

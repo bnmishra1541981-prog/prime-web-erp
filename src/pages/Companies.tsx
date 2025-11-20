@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Building2, Plus, Edit, Trash2 } from 'lucide-react';
+import { CURRENCY_OPTIONS } from '@/lib/currency';
 
 interface Company {
   id: string;
@@ -18,6 +20,7 @@ interface Company {
   address: string | null;
   gstin: string | null;
   financial_year_start: string | null;
+  currency: string | null;
 }
 
 const Companies = () => {
@@ -33,6 +36,7 @@ const Companies = () => {
     address: '',
     gstin: '',
     financial_year_start: '2024-04-01',
+    currency: 'INR',
   });
 
   useEffect(() => {
@@ -109,6 +113,7 @@ const Companies = () => {
       address: '',
       gstin: '',
       financial_year_start: '2024-04-01',
+      currency: 'INR',
     });
     setEditingCompany(null);
   };
@@ -122,6 +127,7 @@ const Companies = () => {
       address: company.address || '',
       gstin: company.gstin || '',
       financial_year_start: company.financial_year_start || '2024-04-01',
+      currency: company.currency || 'INR',
     });
     setIsDialogOpen(true);
   };
@@ -201,6 +207,24 @@ const Companies = () => {
                     onChange={(e) => setFormData({ ...formData, financial_year_start: e.target.value })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency *</Label>
+                  <Select
+                    value={formData.currency}
+                    onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRENCY_OPTIONS.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.symbol} {currency.name} ({currency.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -234,6 +258,7 @@ const Companies = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>GSTIN</TableHead>
+                  <TableHead>Currency</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -244,6 +269,9 @@ const Companies = () => {
                   <TableRow key={company.id}>
                     <TableCell className="font-medium">{company.name}</TableCell>
                     <TableCell>{company.gstin || '-'}</TableCell>
+                    <TableCell>
+                      {CURRENCY_OPTIONS.find(c => c.code === (company.currency || 'INR'))?.symbol || '₹'} {company.currency || 'INR'}
+                    </TableCell>
                     <TableCell>{company.email || '-'}</TableCell>
                     <TableCell>{company.phone || '-'}</TableCell>
                     <TableCell className="text-right">

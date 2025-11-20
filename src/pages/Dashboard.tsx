@@ -9,12 +9,14 @@ import { SalesPurchaseChart } from '@/components/dashboard/SalesPurchaseChart';
 import { CustomerAnalytics } from '@/components/dashboard/CustomerAnalytics';
 import { InventoryAnalytics } from '@/components/dashboard/InventoryAnalytics';
 import { RecentOrders } from '@/components/dashboard/RecentOrders';
+import { formatCurrency } from '@/lib/currency';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string>('');
+  const [companyCurrency, setCompanyCurrency] = useState<string>('INR');
   const [stats, setStats] = useState([
     {
       title: 'Total Sales',
@@ -55,7 +57,7 @@ const Dashboard = () => {
       // Get user's company
       const { data: companies } = await supabase
         .from('companies')
-        .select('id')
+        .select('id, currency')
         .limit(1);
 
       if (!companies || companies.length === 0) {
@@ -64,7 +66,9 @@ const Dashboard = () => {
       }
 
       const selectedCompanyId = companies[0].id;
+      const currency = companies[0].currency || 'INR';
       setCompanyId(selectedCompanyId);
+      setCompanyCurrency(currency);
 
       // Fetch vouchers and ledgers
       const [{ data: vouchers }, { data: ledgers }, { data: entries }] = await Promise.all([
@@ -130,27 +134,27 @@ const Dashboard = () => {
       setStats([
         {
           title: 'Total Sales',
-          value: `₹${totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          value: formatCurrency(totalSales, currency),
           change: totalSales > 0 ? '+' : '0%',
           icon: TrendingUp,
           color: 'text-success',
         },
         {
           title: 'Total Purchase',
-          value: `₹${totalPurchase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          value: formatCurrency(totalPurchase, currency),
           change: totalPurchase > 0 ? '+' : '0%',
           icon: ShoppingCart,
           color: 'text-primary',
         },
         {
           title: 'Receivables',
-          value: `₹${receivables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          value: formatCurrency(receivables, currency),
           icon: DollarSign,
           color: 'text-warning',
         },
         {
           title: 'Payables',
-          value: `₹${payables.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          value: formatCurrency(payables, currency),
           icon: DollarSign,
           color: 'text-destructive',
         },
@@ -286,13 +290,13 @@ const Dashboard = () => {
       {companyId && <SalesPurchaseChart companyId={companyId} />}
 
       {/* Customer Analytics */}
-      {companyId && <CustomerAnalytics companyId={companyId} />}
+      {companyId && <CustomerAnalytics companyId={companyId} currency={companyCurrency} />}
 
       {/* Inventory Analytics */}
       {companyId && <InventoryAnalytics companyId={companyId} />}
 
       {/* Recent Orders */}
-      {companyId && <RecentOrders companyId={companyId} />}
+      {companyId && <RecentOrders companyId={companyId} currency={companyCurrency} />}
     </div>
   );
 };

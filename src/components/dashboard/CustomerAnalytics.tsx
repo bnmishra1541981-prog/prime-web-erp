@@ -4,6 +4,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 
 interface CustomerStats {
   totalCustomers: number;
@@ -16,7 +17,7 @@ interface CustomerStats {
   delayed60Plus: number;
 }
 
-export function CustomerAnalytics({ companyId }: { companyId: string }) {
+export function CustomerAnalytics({ companyId, currency = 'INR' }: { companyId: string; currency?: string }) {
   const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<CustomerStats>({
@@ -203,7 +204,7 @@ export function CustomerAnalytics({ companyId }: { companyId: string }) {
                       {stats.topCustomers.slice(0, 3).map((customer, i) => (
                         <div key={i} className="flex justify-between text-sm">
                           <span className="truncate">{customer.name}</span>
-                          <span className="font-medium">₹{customer.amount.toLocaleString('en-IN')}</span>
+                          <span className="font-medium">{formatCurrency(customer.amount, currency)}</span>
                         </div>
                       ))}
                     </div>
