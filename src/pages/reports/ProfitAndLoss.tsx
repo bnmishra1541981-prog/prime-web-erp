@@ -134,22 +134,23 @@ export default function ProfitAndLoss() {
 
   const formatGroupName = (ledgerType: string) => {
     const mapping: Record<string, string> = {
-      'sales_accounts': 'Sales Account',
-      'direct_incomes': 'Direct Income',
-      'indirect_incomes': 'Indirect Income',
-      'purchase_accounts': 'Purchase Account',
+      'sales_accounts': 'Sales Accounts',
+      'direct_incomes': 'Direct Incomes',
+      'indirect_incomes': 'Indirect Incomes',
+      'purchase_accounts': 'Purchase Accounts',
       'direct_expenses': 'Direct Expenses',
       'indirect_expenses': 'Indirect Expenses',
     };
     return mapping[ledgerType] || ledgerType;
   };
 
-  const groupByCategory = (data: LedgerEntry[]) => {
-    const grouped = new Map<string, LedgerEntry[]>();
+  const groupByCategory = (data: LedgerEntry[]): Record<string, LedgerEntry[]> => {
+    const grouped: Record<string, LedgerEntry[]> = {};
     data.forEach(item => {
-      const existing = grouped.get(item.groupName) || [];
-      existing.push(item);
-      grouped.set(item.groupName, existing);
+      if (!grouped[item.groupName]) {
+        grouped[item.groupName] = [];
+      }
+      grouped[item.groupName].push(item);
     });
     return grouped;
   };
