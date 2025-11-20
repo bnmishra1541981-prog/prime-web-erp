@@ -63,19 +63,35 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      // Get user's company
+      // Get all user's companies and find one with data
       const { data: companies } = await supabase
         .from('companies')
         .select('id, currency')
-        .limit(1);
+        .order('created_at', { ascending: true });
 
       if (!companies || companies.length === 0) {
         setLoading(false);
         return;
       }
 
-      const selectedCompanyId = companies[0].id;
-      const currency = companies[0].currency || 'INR';
+      // Try to find a company with vouchers, otherwise use first company
+      let selectedCompanyId = companies[0].id;
+      let currency = companies[0].currency || 'INR';
+      
+      // Check each company for vouchers
+      for (const company of companies) {
+        const { count } = await supabase
+          .from('vouchers')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', company.id);
+        
+        if (count && count > 0) {
+          selectedCompanyId = company.id;
+          currency = company.currency || 'INR';
+          break;
+        }
+      }
+      
       setCompanyId(selectedCompanyId);
       setCompanyCurrency(currency);
 
