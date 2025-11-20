@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Building2, Mail, Lock, User } from 'lucide-react';
+import { Mail, Lock, User } from 'lucide-react';
+import solviserLogo from '@/assets/solviser-logo.png';
 
 const Auth = () => {
   const [loginEmail, setLoginEmail] = useState('');
@@ -53,12 +54,14 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <div className="flex justify-center mb-2">
-            <div className="p-3 bg-primary rounded-lg">
-              <Building2 className="h-8 w-8 text-primary-foreground" />
-            </div>
+          <div className="flex justify-center mb-4">
+            <img 
+              src={solviserLogo} 
+              alt="Solviser" 
+              className="h-16"
+            />
           </div>
-          <CardTitle className="text-2xl font-bold">ERP System</CardTitle>
+          <CardTitle className="text-2xl font-bold">Solviser ERP</CardTitle>
           <CardDescription>Professional accounting & inventory management</CardDescription>
         </CardHeader>
         <CardContent>
