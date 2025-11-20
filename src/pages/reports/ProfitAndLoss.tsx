@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { FileDown, Loader2 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableFooter,
-} from '@/components/ui/table';
+import { Loader2, Printer, Download, Plus, Minus, TrendingUp, TrendingDown } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
+interface LedgerEntry {
+  ledgerName: string;
+  groupName: string;
+  amount: number;
+}
 
 export default function ProfitAndLoss() {
   const [companies, setCompanies] = useState<any[]>([]);
@@ -21,9 +21,11 @@ export default function ProfitAndLoss() {
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [incomeData, setIncomeData] = useState<any[]>([]);
-  const [expenseData, setExpenseData] = useState<any[]>([]);
+  const [incomeData, setIncomeData] = useState<LedgerEntry[]>([]);
+  const [expenseData, setExpenseData] = useState<LedgerEntry[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchCompanies();
@@ -87,24 +89,22 @@ export default function ProfitAndLoss() {
 
       if (entriesError) throw entriesError;
 
-      // Calculate income
       const income = incomeLedgers?.map((ledger) => {
         const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
         const amount = ledgerEntries.reduce((sum, e) => sum + Number(e.credit_amount || 0) - Number(e.debit_amount || 0), 0);
         return {
-          name: ledger.name,
-          group: ledger.ledger_type,
+          ledgerName: ledger.name,
+          groupName: formatGroupName(ledger.ledger_type),
           amount,
         };
       }) || [];
 
-      // Calculate expenses
       const expenses = expenseLedgers?.map((ledger) => {
         const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
         const amount = ledgerEntries.reduce((sum, e) => sum + Number(e.debit_amount || 0) - Number(e.credit_amount || 0), 0);
         return {
-          name: ledger.name,
-          group: ledger.ledger_type,
+          ledgerName: ledger.name,
+          groupName: formatGroupName(ledger.ledger_type),
           amount,
         };
       }) || [];
@@ -118,9 +118,61 @@ export default function ProfitAndLoss() {
     }
   };
 
+  const formatGroupName = (ledgerType: string) => {
+    const mapping: Record<string, string> = {
+      'sales_accounts': 'Sales Account',
+      'direct_incomes': 'Direct Income',
+      'indirect_incomes': 'Indirect Income',
+      'purchase_accounts': 'Purchase Account',
+      'direct_expenses': 'Direct Expenses',
+      'indirect_expenses': 'Indirect Expenses',
+    };
+    return mapping[ledgerType] || ledgerType;
+  };
+
+  const groupByCategory = (data: LedgerEntry[]) => {
+    const grouped = new Map<string, LedgerEntry[]>();
+    data.forEach(item => {
+      const existing = grouped.get(item.groupName) || [];
+      existing.push(item);
+      grouped.set(item.groupName, existing);
+    });
+    return grouped;
+  };
+
+  const toggleGroup = (groupName: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupName)) {
+      newExpanded.delete(groupName);
+    } else {
+      newExpanded.add(groupName);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
+
+  const handleDownloadPDF = async () => {
+    if (!printRef.current) return;
+    const canvas = await html2canvas(printRef.current);
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 210;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    pdf.save('Profit-Loss-Statement.pdf');
+  };
+
   const totalIncome = incomeData.reduce((sum, row) => sum + row.amount, 0);
   const totalExpense = expenseData.reduce((sum, row) => sum + row.amount, 0);
   const netProfit = totalIncome - totalExpense;
+
+  const expenseGroups = groupByCategory(expenseData);
+  const incomeGroups = groupByCategory(incomeData);
+
+  const selectedCompanyData = companies.find(c => c.id === selectedCompany);
 
   return (
     <div className="container mx-auto p-6">
