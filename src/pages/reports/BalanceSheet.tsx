@@ -284,22 +284,42 @@ export default function BalanceSheet() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {liabilitiesData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{row.ledgerName}</TableCell>
-                      <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {Array.from(liabilityGroups.entries()).map(([groupName, items]) => {
+                    const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
+                    const isExpanded = expandedGroups.has(groupName);
+                    
+                    return (
+                      <>
+                        <TableRow 
+                          key={groupName} 
+                          className="font-semibold cursor-pointer hover:bg-muted/50"
+                          onClick={() => toggleGroup(groupName)}
+                        >
+                          <TableCell className="flex items-center gap-2">
+                            {isExpanded ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                            {groupName}
+                          </TableCell>
+                          <TableCell className="text-right">{groupTotal.toFixed(2)}</TableCell>
+                        </TableRow>
+                        {isExpanded && items.map((item, idx) => (
+                          <TableRow key={`${groupName}-${idx}`} className="bg-muted/20">
+                            <TableCell className="pl-12">{item.ledgerName}</TableCell>
+                            <TableCell className="text-right">{item.amount.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    );
+                  })}
                   {difference < 0 && (
-                    <TableRow className="font-bold bg-destructive/10">
-                      <TableCell>Profit for the Year</TableCell>
+                    <TableRow className="font-bold bg-primary/10">
+                      <TableCell>Net Profit</TableCell>
                       <TableCell className="text-right">{Math.abs(difference).toFixed(2)}</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
                 <TableFooter>
                   <TableRow>
-                    <TableCell className="font-bold">Total</TableCell>
+                    <TableCell className="font-bold">Gross Total</TableCell>
                     <TableCell className="text-right font-bold">
                       {(totalLiabilities + (difference < 0 ? Math.abs(difference) : 0)).toFixed(2)}
                     </TableCell>
@@ -318,22 +338,42 @@ export default function BalanceSheet() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {assetsData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{row.ledgerName}</TableCell>
-                      <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {Array.from(assetGroups.entries()).map(([groupName, items]) => {
+                    const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
+                    const isExpanded = expandedGroups.has(groupName);
+                    
+                    return (
+                      <>
+                        <TableRow 
+                          key={groupName} 
+                          className="font-semibold cursor-pointer hover:bg-muted/50"
+                          onClick={() => toggleGroup(groupName)}
+                        >
+                          <TableCell className="flex items-center gap-2">
+                            {isExpanded ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                            {groupName}
+                          </TableCell>
+                          <TableCell className="text-right">{groupTotal.toFixed(2)}</TableCell>
+                        </TableRow>
+                        {isExpanded && items.map((item, idx) => (
+                          <TableRow key={`${groupName}-${idx}`} className="bg-muted/20">
+                            <TableCell className="pl-12">{item.ledgerName}</TableCell>
+                            <TableCell className="text-right">{item.amount.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    );
+                  })}
                   {difference > 0 && (
                     <TableRow className="font-bold bg-destructive/10">
-                      <TableCell>Loss for the Year</TableCell>
+                      <TableCell>Net Loss</TableCell>
                       <TableCell className="text-right">{difference.toFixed(2)}</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
                 <TableFooter>
                   <TableRow>
-                    <TableCell className="font-bold">Total</TableCell>
+                    <TableCell className="font-bold">Gross Total</TableCell>
                     <TableCell className="text-right font-bold">
                       {(totalAssets + (difference > 0 ? difference : 0)).toFixed(2)}
                     </TableCell>
