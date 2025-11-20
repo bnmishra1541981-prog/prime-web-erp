@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Download, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,6 +22,7 @@ export default function StockGroups() {
     under_group: '',
   });
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchCompanies();
@@ -134,6 +135,111 @@ export default function StockGroups() {
     setEditingGroup(null);
   };
 
+  const handleExportCSV = () => {
+    if (stockGroups.length === 0) {
+      toast({ title: 'No data to export', description: 'Please add stock groups first', variant: 'destructive' });
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Name', 'Parent Group ID', 'Under Group'];
+    const rows = stockGroups.map(group => [
+      group.name,
+      group.parent_group_id || '',
+      group.under_group || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `stock_groups_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({ title: 'Export successful', description: `Exported ${stockGroups.length} stock groups` });
+  };
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!selectedCompany) {
+      toast({ title: 'No company selected', description: 'Please select a company first', variant: 'destructive' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          toast({ title: 'Invalid CSV', description: 'CSV file is empty or has no data rows', variant: 'destructive' });
+          return;
+        }
+
+        // Skip header row
+        const dataLines = lines.slice(1);
+        const groupsToInsert = [];
+
+        for (const line of dataLines) {
+          // Parse CSV line (handle quoted values)
+          const matches = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+          if (!matches || matches.length < 1) continue;
+
+          const [name, parent_group_id, under_group] = matches.map(val => 
+            val.replace(/^"|"$/g, '').trim()
+          );
+
+          if (name) {
+            groupsToInsert.push({
+              name,
+              parent_group_id: parent_group_id || null,
+              under_group: under_group || null,
+              company_id: selectedCompany
+            });
+          }
+        }
+
+        if (groupsToInsert.length === 0) {
+          toast({ title: 'No valid data', description: 'No valid stock groups found in CSV', variant: 'destructive' });
+          return;
+        }
+
+        console.log('Importing stock groups:', groupsToInsert);
+        const { error } = await supabase.from('stock_groups').insert(groupsToInsert);
+
+        if (error) {
+          console.error('Error importing stock groups:', error);
+          toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
+        } else {
+          toast({ title: 'Import successful', description: `Imported ${groupsToInsert.length} stock groups` });
+          fetchStockGroups();
+        }
+      } catch (error) {
+        console.error('Error parsing CSV:', error);
+        toast({ title: 'Import failed', description: 'Error parsing CSV file', variant: 'destructive' });
+      }
+    };
+
+    reader.readAsText(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
@@ -151,6 +257,21 @@ export default function StockGroups() {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={handleExportCSV} disabled={stockGroups.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import CSV
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleImportCSV}
+            className="hidden"
+          />
           <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
             <DialogTrigger asChild>
               <Button>
