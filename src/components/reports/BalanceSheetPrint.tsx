@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import solviserLogo from '@/assets/solviser-logo.png';
 
 interface BalanceSheetData {
   ledgerName: string;
@@ -71,6 +72,9 @@ export const BalanceSheetPrint = forwardRef<HTMLDivElement, BalanceSheetPrintPro
       {/* Header */}
       <div className="border-2 border-black">
         <div className="bg-gray-100 p-4 border-b-2 border-black text-center">
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <img src={solviserLogo} alt="Solviser" className="h-10" />
+          </div>
           <h1 className="text-xl font-bold">{company.name}</h1>
           {company.address && <p className="text-xs mt-1">{company.address}</p>}
           <div className="flex justify-center gap-4 text-xs mt-1">
