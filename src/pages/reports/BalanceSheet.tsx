@@ -150,12 +150,13 @@ export default function BalanceSheet() {
     return mapping[ledgerType] || ledgerType;
   };
 
-  const groupByCategory = (data: LedgerEntry[]) => {
-    const grouped = new Map<string, LedgerEntry[]>();
+  const groupByCategory = (data: LedgerEntry[]): Record<string, LedgerEntry[]> => {
+    const grouped: Record<string, LedgerEntry[]> = {};
     data.forEach(item => {
-      const existing = grouped.get(item.groupName) || [];
-      existing.push(item);
-      grouped.set(item.groupName, existing);
+      if (!grouped[item.groupName]) {
+        grouped[item.groupName] = [];
+      }
+      grouped[item.groupName].push(item);
     });
     return grouped;
   };
@@ -284,7 +285,7 @@ export default function BalanceSheet() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Array.from(liabilityGroups.entries()).map(([groupName, items]) => {
+                  {Object.entries(liabilityGroups).map(([groupName, items]) => {
                     const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
                     const isExpanded = expandedGroups.has(groupName);
                     
@@ -338,7 +339,7 @@ export default function BalanceSheet() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Array.from(assetGroups.entries()).map(([groupName, items]) => {
+                  {Object.entries(assetGroups).map(([groupName, items]) => {
                     const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
                     const isExpanded = expandedGroups.has(groupName);
                     
