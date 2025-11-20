@@ -10,11 +10,13 @@ import { useReactToPrint } from 'react-to-print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { BalanceSheetPrint } from '@/components/reports/BalanceSheetPrint';
+import { LedgerTransactionDialog } from '@/components/reports/LedgerTransactionDialog';
 
 interface LedgerEntry {
   ledgerName: string;
   groupName: string;
   amount: number;
+  ledgerId?: string;
 }
 
 export default function BalanceSheet() {
@@ -25,6 +27,8 @@ export default function BalanceSheet() {
   const [liabilitiesData, setLiabilitiesData] = useState<LedgerEntry[]>([]);
   const [assetsData, setAssetsData] = useState<LedgerEntry[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedLedger, setSelectedLedger] = useState<{ id: string; name: string } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +110,7 @@ export default function BalanceSheet() {
           ledgerName: ledger.name,
           groupName: formatGroupName(ledger.ledger_type),
           amount: balance,
+          ledgerId: ledger.id,
         };
       }) || [];
 
@@ -117,6 +122,7 @@ export default function BalanceSheet() {
           ledgerName: ledger.name,
           groupName: formatGroupName(ledger.ledger_type),
           amount: balance,
+          ledgerId: ledger.id,
         };
       }) || [];
 
@@ -169,6 +175,11 @@ export default function BalanceSheet() {
       newExpanded.add(groupName);
     }
     setExpandedGroups(newExpanded);
+  };
+
+  const handleLedgerClick = (ledgerId: string, ledgerName: string) => {
+    setSelectedLedger({ id: ledgerId, name: ledgerName });
+    setDialogOpen(true);
   };
 
   const handlePrint = useReactToPrint({
@@ -303,7 +314,11 @@ export default function BalanceSheet() {
                           <TableCell className="text-right">{groupTotal.toFixed(2)}</TableCell>
                         </TableRow>
                         {isExpanded && items.map((item, idx) => (
-                          <TableRow key={`${groupName}-${idx}`} className="bg-muted/20">
+                          <TableRow 
+                            key={`${groupName}-${idx}`} 
+                            className="bg-muted/20 cursor-pointer hover:bg-muted/40"
+                            onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
+                          >
                             <TableCell className="pl-12">{item.ledgerName}</TableCell>
                             <TableCell className="text-right">{item.amount.toFixed(2)}</TableCell>
                           </TableRow>
@@ -357,7 +372,11 @@ export default function BalanceSheet() {
                           <TableCell className="text-right">{groupTotal.toFixed(2)}</TableCell>
                         </TableRow>
                         {isExpanded && items.map((item, idx) => (
-                          <TableRow key={`${groupName}-${idx}`} className="bg-muted/20">
+                          <TableRow 
+                            key={`${groupName}-${idx}`} 
+                            className="bg-muted/20 cursor-pointer hover:bg-muted/40"
+                            onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
+                          >
                             <TableCell className="pl-12">{item.ledgerName}</TableCell>
                             <TableCell className="text-right">{item.amount.toFixed(2)}</TableCell>
                           </TableRow>
@@ -385,6 +404,15 @@ export default function BalanceSheet() {
           </div>
         </>
       ) : null}
+
+      <LedgerTransactionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        ledgerId={selectedLedger?.id || null}
+        ledgerName={selectedLedger?.name || ''}
+        companyId={selectedCompany}
+        asOfDate={asOfDate}
+      />
     </div>
   );
 }
