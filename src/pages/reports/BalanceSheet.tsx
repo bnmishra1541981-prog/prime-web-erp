@@ -1,28 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { FileDown, Loader2 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableFooter,
-} from '@/components/ui/table';
+import { Loader2, Printer, Download, Plus, Minus } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
+interface LedgerEntry {
+  ledgerName: string;
+  groupName: string;
+  amount: number;
+}
 
 export default function BalanceSheet() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [asOfDate, setAsOfDate] = useState('');
-  const [liabilitiesData, setLiabilitiesData] = useState<any[]>([]);
-  const [assetsData, setAssetsData] = useState<any[]>([]);
+  const [liabilitiesData, setLiabilitiesData] = useState<LedgerEntry[]>([]);
+  const [assetsData, setAssetsData] = useState<LedgerEntry[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchCompanies();
@@ -85,26 +87,24 @@ export default function BalanceSheet() {
 
       if (entriesError) throw entriesError;
 
-      // Calculate liabilities
       const liabilities = liabilityLedgers?.map((ledger) => {
         const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
         const balance = Number(ledger.opening_balance || 0) + 
           ledgerEntries.reduce((sum, e) => sum + Number(e.credit_amount || 0) - Number(e.debit_amount || 0), 0);
         return {
-          name: ledger.name,
-          group: ledger.ledger_type,
+          ledgerName: ledger.name,
+          groupName: formatGroupName(ledger.ledger_type),
           amount: balance,
         };
       }) || [];
 
-      // Calculate assets
       const assets = assetLedgers?.map((ledger) => {
         const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
         const balance = Number(ledger.opening_balance || 0) + 
           ledgerEntries.reduce((sum, e) => sum + Number(e.debit_amount || 0) - Number(e.credit_amount || 0), 0);
         return {
-          name: ledger.name,
-          group: ledger.ledger_type,
+          ledgerName: ledger.name,
+          groupName: formatGroupName(ledger.ledger_type),
           amount: balance,
         };
       }) || [];
@@ -118,9 +118,70 @@ export default function BalanceSheet() {
     }
   };
 
+  const formatGroupName = (ledgerType: string) => {
+    const mapping: Record<string, string> = {
+      'capital_account': 'Capital Account',
+      'reserves_and_surplus': 'Reserves & Surplus',
+      'secured_loans': 'Secured Loans',
+      'unsecured_loans': 'Unsecured Loans',
+      'sundry_creditors': 'Sundry Creditors',
+      'duties_and_taxes': 'Duties & Taxes',
+      'fixed_assets': 'Fixed Assets',
+      'investments': 'Investments',
+      'current_assets': 'Current Assets',
+      'sundry_debtors': 'Sundry Debtors',
+      'cash_in_hand': 'Cash in Hand',
+      'bank_accounts': 'Bank Accounts',
+      'stock_in_hand': 'Stock in Hand',
+      'deposits_assets': 'Deposits (Assets)',
+      'loans_and_advances_assets': 'Loans & Advances (Assets)',
+    };
+    return mapping[ledgerType] || ledgerType;
+  };
+
+  const groupByCategory = (data: LedgerEntry[]) => {
+    const grouped = new Map<string, LedgerEntry[]>();
+    data.forEach(item => {
+      const existing = grouped.get(item.groupName) || [];
+      existing.push(item);
+      grouped.set(item.groupName, existing);
+    });
+    return grouped;
+  };
+
+  const toggleGroup = (groupName: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupName)) {
+      newExpanded.delete(groupName);
+    } else {
+      newExpanded.add(groupName);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
+
+  const handleDownloadPDF = async () => {
+    if (!printRef.current) return;
+    const canvas = await html2canvas(printRef.current);
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 210;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    pdf.save('Balance-Sheet.pdf');
+  };
+
   const totalLiabilities = liabilitiesData.reduce((sum, row) => sum + row.amount, 0);
   const totalAssets = assetsData.reduce((sum, row) => sum + row.amount, 0);
   const difference = totalAssets - totalLiabilities;
+
+  const liabilityGroups = groupByCategory(liabilitiesData);
+  const assetGroups = groupByCategory(assetsData);
+
+  const selectedCompanyData = companies.find(c => c.id === selectedCompany);
 
   return (
     <div className="container mx-auto p-6">
