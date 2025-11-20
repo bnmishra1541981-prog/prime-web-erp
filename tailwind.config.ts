@@ -74,6 +74,10 @@ export default {
           "row-even": "hsl(var(--table-row-even))",
           "row-odd": "hsl(var(--table-row-odd))",
         },
+        solviser: {
+          primary: "hsl(var(--solviser-primary))",
+          "primary-hover": "hsl(var(--solviser-primary-hover))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

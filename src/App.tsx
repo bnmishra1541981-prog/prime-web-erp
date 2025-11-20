@@ -16,6 +16,7 @@ import PaymentVoucher from "./pages/vouchers/PaymentVoucher";
 import ReceiptVoucher from "./pages/vouchers/ReceiptVoucher";
 import DayBook from "./pages/reports/DayBook";
 import LedgerReport from "./pages/reports/LedgerReport";
+import InvoiceDemo from "./pages/InvoiceDemo";
 import { MainLayout } from "./components/MainLayout";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -132,6 +133,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/invoice-demo" element={<InvoiceDemo />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
