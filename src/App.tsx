@@ -28,6 +28,7 @@ import GSTRates from "./pages/masters/GSTRates";
 import CostCenters from "./pages/masters/CostCenters";
 import JournalVoucher from "./pages/vouchers/JournalVoucher";
 import ContraVoucher from "./pages/vouchers/ContraVoucher";
+import InvoiceView from "./pages/vouchers/InvoiceView";
 import { MainLayout } from "./components/MainLayout";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -229,6 +230,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ContraVoucher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoice/:id"
+        element={
+          <ProtectedRoute>
+            <InvoiceView />
           </ProtectedRoute>
         }
       />
