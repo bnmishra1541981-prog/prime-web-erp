@@ -33,6 +33,12 @@ export default function ProfitAndLoss() {
     fetchCompanies();
   }, []);
 
+  useEffect(() => {
+    if (selectedCompany && fromDate && toDate) {
+      fetchProfitAndLoss();
+    }
+  }, [selectedCompany, fromDate, toDate]);
+
   const fetchCompanies = async () => {
     const { data, error } = await supabase
       .from('companies')
@@ -45,13 +51,18 @@ export default function ProfitAndLoss() {
       setCompanies(data || []);
       if (data && data.length > 0) {
         setSelectedCompany(data[0].id);
+        
+        // Set default dates - first day of current month to today
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        setFromDate(firstDay.toISOString().split('T')[0]);
+        setToDate(today.toISOString().split('T')[0]);
       }
     }
   };
 
   const fetchProfitAndLoss = async () => {
     if (!selectedCompany || !fromDate || !toDate) {
-      toast({ title: 'Please select company and date range', variant: 'destructive' });
       return;
     }
 
@@ -219,13 +230,11 @@ export default function ProfitAndLoss() {
           </div>
 
           <div className="flex items-end gap-2">
-            <Button onClick={fetchProfitAndLoss} disabled={loading} className="flex-1">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
-            </Button>
             <Button 
               variant="outline" 
               onClick={handlePrint} 
-              disabled={incomeData.length === 0}
+              disabled={incomeData.length === 0 || loading}
+              className="flex-1"
             >
               <Printer className="h-4 w-4 mr-2" />
               Print
@@ -233,7 +242,8 @@ export default function ProfitAndLoss() {
             <Button 
               variant="outline" 
               onClick={handleDownloadPDF} 
-              disabled={incomeData.length === 0}
+              disabled={incomeData.length === 0 || loading}
+              className="flex-1"
             >
               <Download className="h-4 w-4 mr-2" />
               PDF

@@ -32,6 +32,12 @@ export default function BalanceSheet() {
     fetchCompanies();
   }, []);
 
+  useEffect(() => {
+    if (selectedCompany && asOfDate) {
+      fetchBalanceSheet();
+    }
+  }, [selectedCompany, asOfDate]);
+
   const fetchCompanies = async () => {
     const { data, error } = await supabase
       .from('companies')
@@ -45,12 +51,15 @@ export default function BalanceSheet() {
       if (data && data.length > 0) {
         setSelectedCompany(data[0].id);
       }
+      // Set default date to current date
+      if (!asOfDate) {
+        setAsOfDate(new Date().toISOString().split('T')[0]);
+      }
     }
   };
 
   const fetchBalanceSheet = async () => {
     if (!selectedCompany || !asOfDate) {
-      toast({ title: 'Please select company and date', variant: 'destructive' });
       return;
     }
 
@@ -218,13 +227,11 @@ export default function BalanceSheet() {
           </div>
 
           <div className="flex items-end gap-2">
-            <Button onClick={fetchBalanceSheet} disabled={loading} className="flex-1">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
-            </Button>
             <Button 
               variant="outline" 
               onClick={handlePrint} 
-              disabled={liabilitiesData.length === 0}
+              disabled={liabilitiesData.length === 0 || loading}
+              className="flex-1"
             >
               <Printer className="h-4 w-4 mr-2" />
               Print
@@ -232,7 +239,8 @@ export default function BalanceSheet() {
             <Button 
               variant="outline" 
               onClick={handleDownloadPDF} 
-              disabled={liabilitiesData.length === 0}
+              disabled={liabilitiesData.length === 0 || loading}
+              className="flex-1"
             >
               <Download className="h-4 w-4 mr-2" />
               PDF
