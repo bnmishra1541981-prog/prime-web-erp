@@ -12,6 +12,7 @@ interface InvoiceItem {
   hsn_sac?: string;
   quantity: number;
   unit?: string;
+  no_of_pcs?: number;
   rate: number;
   amount: number;
   cgst_rate?: number;
@@ -29,6 +30,13 @@ interface InvoiceProps {
   dueDate?: string;
   referenceNumber?: string;
   referenceDate?: string;
+  paymentTerms?: number;
+  paymentMode?: string;
+  truckNumber?: string;
+  transportName?: string;
+  transportGst?: string;
+  lrNumber?: string;
+  deliveryPlace?: string;
   company: {
     name: string;
     address?: string;
@@ -50,8 +58,16 @@ interface InvoiceProps {
   };
   items: InvoiceItem[];
   narration?: string;
+  basicAmount?: number;
+  otherCharges?: number;
+  tcsRate?: number;
+  tcsAmount?: number;
+  tdsRate?: number;
+  tdsAmount?: number;
+  roundOff?: number;
   totalAmount: number;
   placeOfSupply?: string;
+  billingAddress?: string;
   shippingAddress?: string;
 }
 
@@ -63,12 +79,27 @@ const InvoicePrint = forwardRef<HTMLDivElement, InvoiceProps>((props, ref) => {
     dueDate,
     referenceNumber,
     referenceDate,
+    paymentTerms,
+    paymentMode,
+    truckNumber,
+    transportName,
+    transportGst,
+    lrNumber,
+    deliveryPlace,
     company,
     party,
     items,
     narration,
+    basicAmount,
+    otherCharges,
+    tcsRate,
+    tcsAmount,
+    tdsRate,
+    tdsAmount,
+    roundOff,
     totalAmount,
     placeOfSupply,
+    billingAddress,
     shippingAddress,
   } = props;
 
@@ -138,43 +169,60 @@ const InvoicePrint = forwardRef<HTMLDivElement, InvoiceProps>((props, ref) => {
           <div className="p-3 border-r-2 border-black">
             <p className="text-sm"><strong>Invoice No:</strong> {voucherNumber}</p>
             <p className="text-sm"><strong>Invoice Date:</strong> {new Date(voucherDate).toLocaleDateString('en-IN')}</p>
-            {dueDate && <p className="text-sm"><strong>Due Date:</strong> {new Date(dueDate).toLocaleDateString('en-IN')}</p>}
-            {referenceNumber && <p className="text-sm"><strong>Ref No:</strong> {referenceNumber}</p>}
-            {referenceDate && <p className="text-sm"><strong>Ref Date:</strong> {new Date(referenceDate).toLocaleDateString('en-IN')}</p>}
+            {referenceNumber && <p className="text-sm"><strong>PO No:</strong> {referenceNumber}</p>}
+            {referenceDate && <p className="text-sm"><strong>PO Date:</strong> {new Date(referenceDate).toLocaleDateString('en-IN')}</p>}
           </div>
           <div className="p-3">
+            {paymentTerms !== undefined && paymentTerms > 0 && (
+              <p className="text-sm"><strong>Payment Terms:</strong> {paymentTerms} Days</p>
+            )}
+            {paymentMode && <p className="text-sm"><strong>Mode:</strong> {paymentMode}</p>}
             {placeOfSupply && <p className="text-sm"><strong>Place of Supply:</strong> {placeOfSupply}</p>}
-            <p className="text-sm"><strong>Terms:</strong> As per agreement</p>
           </div>
         </div>
+
+        {/* Transport Details */}
+        {(truckNumber || transportName || lrNumber || deliveryPlace) && (
+          <div className="grid grid-cols-2 border-b-2 border-black">
+            <div className="p-3 border-r-2 border-black">
+              <p className="text-sm font-bold mb-1">Dispatch Details:</p>
+              {truckNumber && <p className="text-xs"><strong>Truck No:</strong> {truckNumber}</p>}
+              {transportName && <p className="text-xs"><strong>Transport:</strong> {transportName}</p>}
+              {transportGst && <p className="text-xs"><strong>Transport GST:</strong> {transportGst}</p>}
+            </div>
+            <div className="p-3">
+              {lrNumber && <p className="text-xs"><strong>LR No:</strong> {lrNumber}</p>}
+              {deliveryPlace && <p className="text-xs"><strong>Delivery Place:</strong> {deliveryPlace}</p>}
+            </div>
+          </div>
+        )}
 
         {/* Party Details */}
         <div className="grid grid-cols-2 border-b-2 border-black">
           <div className="p-3 border-r-2 border-black">
-            <p className="text-sm font-bold mb-1">{type === 'sales' ? 'Bill To:' : 'Supplier Details:'}</p>
+            <p className="text-sm font-bold mb-1">Bill To:</p>
             <p className="text-sm font-semibold">{party.name}</p>
-            {party.address && <p className="text-sm">{party.address}</p>}
+            {billingAddress && <p className="text-sm">{billingAddress}</p>}
             {party.gstin && <p className="text-sm"><strong>GSTIN:</strong> {party.gstin}</p>}
             {party.state && <p className="text-sm"><strong>State:</strong> {party.state}</p>}
             {party.phone && <p className="text-sm"><strong>Phone:</strong> {party.phone}</p>}
           </div>
-          {shippingAddress && (
-            <div className="p-3">
-              <p className="text-sm font-bold mb-1">Ship To:</p>
-              <p className="text-sm">{shippingAddress}</p>
-            </div>
-          )}
+          <div className="p-3">
+            <p className="text-sm font-bold mb-1">Ship To:</p>
+            <p className="text-sm">{shippingAddress || billingAddress || 'Same as Bill To'}</p>
+          </div>
         </div>
 
         {/* Items Table */}
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-100">
-              <th className="border-2 border-black p-2 text-left text-xs">S.No</th>
-              <th className="border-2 border-black p-2 text-left text-xs">Description of Goods</th>
-              <th className="border-2 border-black p-2 text-left text-xs">HSN/SAC</th>
+              <th className="border-2 border-black p-2 text-left text-xs">Sr.</th>
+              <th className="border-2 border-black p-2 text-left text-xs">Item Name</th>
+              <th className="border-2 border-black p-2 text-left text-xs">HSN Code</th>
+              <th className="border-2 border-black p-2 text-left text-xs">UoM</th>
+              <th className="border-2 border-black p-2 text-right text-xs">No. Pcs</th>
               <th className="border-2 border-black p-2 text-right text-xs">Qty</th>
-              <th className="border-2 border-black p-2 text-left text-xs">Unit</th>
               <th className="border-2 border-black p-2 text-right text-xs">Rate</th>
               <th className="border-2 border-black p-2 text-right text-xs">Amount</th>
             </tr>
@@ -185,36 +233,81 @@ const InvoicePrint = forwardRef<HTMLDivElement, InvoiceProps>((props, ref) => {
                 <td className="border-2 border-black p-2 text-xs">{index + 1}</td>
                 <td className="border-2 border-black p-2 text-xs">{item.description}</td>
                 <td className="border-2 border-black p-2 text-xs">{item.hsn_sac || '-'}</td>
-                <td className="border-2 border-black p-2 text-right text-xs">{item.quantity}</td>
                 <td className="border-2 border-black p-2 text-xs">{item.unit || 'Nos'}</td>
+                <td className="border-2 border-black p-2 text-right text-xs">{item.no_of_pcs || 1}</td>
+                <td className="border-2 border-black p-2 text-right text-xs">{item.quantity}</td>
                 <td className="border-2 border-black p-2 text-right text-xs">₹{item.rate.toFixed(2)}</td>
                 <td className="border-2 border-black p-2 text-right text-xs">₹{item.amount.toFixed(2)}</td>
               </tr>
             ))}
-            <tr>
-              <td colSpan={6} className="border-2 border-black p-2 text-right font-bold text-xs">Taxable Amount:</td>
-              <td className="border-2 border-black p-2 text-right font-bold text-xs">₹{taxableAmount.toFixed(2)}</td>
+            
+            {/* Tax Slab Section */}
+            <tr className="bg-gray-50">
+              <td colSpan={7} className="border-2 border-black p-2 text-right font-bold text-xs">Basic Amount:</td>
+              <td className="border-2 border-black p-2 text-right font-bold text-xs">₹{(basicAmount || taxableAmount).toFixed(2)}</td>
             </tr>
+            
             {cgstTotal > 0 && (
               <tr>
-                <td colSpan={6} className="border-2 border-black p-2 text-right text-xs">CGST:</td>
+                <td colSpan={7} className="border-2 border-black p-2 text-right text-xs">
+                  CGST {items[0]?.cgst_rate ? `@ ${items[0].cgst_rate}%` : ''}:
+                </td>
                 <td className="border-2 border-black p-2 text-right text-xs">₹{cgstTotal.toFixed(2)}</td>
               </tr>
             )}
             {sgstTotal > 0 && (
               <tr>
-                <td colSpan={6} className="border-2 border-black p-2 text-right text-xs">SGST:</td>
+                <td colSpan={7} className="border-2 border-black p-2 text-right text-xs">
+                  SGST {items[0]?.sgst_rate ? `@ ${items[0].sgst_rate}%` : ''}:
+                </td>
                 <td className="border-2 border-black p-2 text-right text-xs">₹{sgstTotal.toFixed(2)}</td>
               </tr>
             )}
             {igstTotal > 0 && (
               <tr>
-                <td colSpan={6} className="border-2 border-black p-2 text-right text-xs">IGST:</td>
+                <td colSpan={7} className="border-2 border-black p-2 text-right text-xs">
+                  IGST {items[0]?.igst_rate ? `@ ${items[0].igst_rate}%` : ''}:
+                </td>
                 <td className="border-2 border-black p-2 text-right text-xs">₹{igstTotal.toFixed(2)}</td>
               </tr>
             )}
+            
+            {otherCharges !== undefined && otherCharges > 0 && (
+              <tr>
+                <td colSpan={7} className="border-2 border-black p-2 text-right text-xs">Other Charges:</td>
+                <td className="border-2 border-black p-2 text-right text-xs">₹{otherCharges.toFixed(2)}</td>
+              </tr>
+            )}
+            
+            {tcsAmount !== undefined && tcsAmount > 0 && (
+              <tr>
+                <td colSpan={7} className="border-2 border-black p-2 text-right text-xs">
+                  TCS {tcsRate ? `@ ${tcsRate}%` : ''}:
+                </td>
+                <td className="border-2 border-black p-2 text-right text-xs">₹{tcsAmount.toFixed(2)}</td>
+              </tr>
+            )}
+            
+            {tdsAmount !== undefined && tdsAmount > 0 && (
+              <tr>
+                <td colSpan={7} className="border-2 border-black p-2 text-right text-xs">
+                  TDS {tdsRate ? `@ ${tdsRate}%` : ''}:
+                </td>
+                <td className="border-2 border-black p-2 text-right text-xs text-destructive">-₹{tdsAmount.toFixed(2)}</td>
+              </tr>
+            )}
+            
+            {roundOff !== undefined && roundOff !== 0 && (
+              <tr>
+                <td colSpan={7} className="border-2 border-black p-2 text-right text-xs">Round Off:</td>
+                <td className="border-2 border-black p-2 text-right text-xs">
+                  {roundOff >= 0 ? '+' : ''}₹{roundOff.toFixed(2)}
+                </td>
+              </tr>
+            )}
+            
             <tr className="bg-gray-100">
-              <td colSpan={6} className="border-2 border-black p-2 text-right font-bold text-sm">Total Amount:</td>
+              <td colSpan={7} className="border-2 border-black p-2 text-right font-bold text-sm">Grand Total:</td>
               <td className="border-2 border-black p-2 text-right font-bold text-sm">₹{totalAmount.toFixed(2)}</td>
             </tr>
           </tbody>
@@ -222,22 +315,28 @@ const InvoicePrint = forwardRef<HTMLDivElement, InvoiceProps>((props, ref) => {
 
         {/* Amount in Words */}
         <div className="border-b-2 border-black p-3">
-          <p className="text-sm"><strong>Amount in Words:</strong> {numberToWords(Math.round(totalAmount))}</p>
+          <p className="text-sm">
+            <strong>Amount in Words (Figures & Words):</strong> ₹{totalAmount.toFixed(2)} - {numberToWords(Math.round(totalAmount))}
+          </p>
         </div>
 
-        {/* Bank Details & Terms */}
+        {/* Bank Details & Company Info */}
         <div className="grid grid-cols-2 border-b-2 border-black">
           <div className="p-3 border-r-2 border-black">
             <p className="text-sm font-bold mb-2">Bank Details:</p>
             {company.bank_name && <p className="text-xs">Bank: {company.bank_name}</p>}
             {company.bank_account_number && <p className="text-xs">A/c No: {company.bank_account_number}</p>}
             {company.bank_ifsc && <p className="text-xs">IFSC: {company.bank_ifsc}</p>}
+            {company.pan && (
+              <p className="text-xs mt-2"><strong>Company PAN:</strong> {company.pan}</p>
+            )}
           </div>
           <div className="p-3">
             <p className="text-sm font-bold mb-2">Terms & Conditions:</p>
             <p className="text-xs">1. Goods once sold will not be taken back</p>
             <p className="text-xs">2. Interest @18% p.a. will be charged on delayed payments</p>
             <p className="text-xs">3. Subject to jurisdiction only</p>
+            <p className="text-xs">4. All disputes subject to local jurisdiction</p>
           </div>
         </div>
 
@@ -248,14 +347,20 @@ const InvoicePrint = forwardRef<HTMLDivElement, InvoiceProps>((props, ref) => {
           </div>
         )}
 
-        {/* Footer */}
+        {/* Footer - Signatures */}
         <div className="grid grid-cols-2">
           <div className="p-3 border-r-2 border-black">
-            <p className="text-xs">Receiver's Signature</p>
+            <p className="text-xs font-bold mb-1">Receiver's Signature:</p>
+            <div className="h-16 border-b border-dashed border-gray-400 mb-2"></div>
+            <p className="text-xs">Name & Date</p>
           </div>
           <div className="p-3 text-right">
-            <p className="text-sm font-bold mb-8">For {company.name}</p>
-            <p className="text-xs">Authorized Signatory</p>
+            <p className="text-sm font-bold mb-1">For {company.name}</p>
+            <div className="h-16 mb-2 flex items-end justify-end">
+              <div className="border-t border-black w-32 pt-1">
+                <p className="text-xs">Authorized Signatory</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -778,57 +778,102 @@ export type Database = {
       }
       vouchers: {
         Row: {
+          basic_amount: number | null
+          billing_address: string | null
           company_id: string
           created_at: string
           created_by: string
+          delivery_place: string | null
           due_date: string | null
           godown_id: string | null
           id: string
+          lr_number: string | null
           narration: string | null
+          other_charges: number | null
           party_ledger_id: string | null
+          payment_mode: string | null
+          payment_terms: number | null
           place_of_supply: string | null
           reference_date: string | null
           reference_number: string | null
+          round_off: number | null
           shipping_address: string | null
+          tcs_amount: number | null
+          tcs_rate: number | null
+          tds_amount: number | null
+          tds_rate: number | null
           total_amount: number
+          transport_gst: string | null
+          transport_name: string | null
+          truck_number: string | null
           updated_at: string
           voucher_date: string
           voucher_number: string
           voucher_type: Database["public"]["Enums"]["voucher_type"]
         }
         Insert: {
+          basic_amount?: number | null
+          billing_address?: string | null
           company_id: string
           created_at?: string
           created_by: string
+          delivery_place?: string | null
           due_date?: string | null
           godown_id?: string | null
           id?: string
+          lr_number?: string | null
           narration?: string | null
+          other_charges?: number | null
           party_ledger_id?: string | null
+          payment_mode?: string | null
+          payment_terms?: number | null
           place_of_supply?: string | null
           reference_date?: string | null
           reference_number?: string | null
+          round_off?: number | null
           shipping_address?: string | null
+          tcs_amount?: number | null
+          tcs_rate?: number | null
+          tds_amount?: number | null
+          tds_rate?: number | null
           total_amount?: number
+          transport_gst?: string | null
+          transport_name?: string | null
+          truck_number?: string | null
           updated_at?: string
           voucher_date?: string
           voucher_number: string
           voucher_type: Database["public"]["Enums"]["voucher_type"]
         }
         Update: {
+          basic_amount?: number | null
+          billing_address?: string | null
           company_id?: string
           created_at?: string
           created_by?: string
+          delivery_place?: string | null
           due_date?: string | null
           godown_id?: string | null
           id?: string
+          lr_number?: string | null
           narration?: string | null
+          other_charges?: number | null
           party_ledger_id?: string | null
+          payment_mode?: string | null
+          payment_terms?: number | null
           place_of_supply?: string | null
           reference_date?: string | null
           reference_number?: string | null
+          round_off?: number | null
           shipping_address?: string | null
+          tcs_amount?: number | null
+          tcs_rate?: number | null
+          tds_amount?: number | null
+          tds_rate?: number | null
           total_amount?: number
+          transport_gst?: string | null
+          transport_name?: string | null
+          truck_number?: string | null
           updated_at?: string
           voucher_date?: string
           voucher_number?: string

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { VoucherForm } from '@/components/vouchers/VoucherForm';
+import { InvoiceVoucherForm } from '@/components/vouchers/InvoiceVoucherForm';
 import { VoucherList } from '@/components/vouchers/VoucherList';
 import { toast } from 'sonner';
 
@@ -49,7 +49,7 @@ const PurchaseVoucher = () => {
         <p className="text-sm text-muted-foreground">Record purchase transactions</p>
       </div>
       
-      <VoucherForm 
+      <InvoiceVoucherForm 
         voucherType="purchase" 
         onSuccess={handleVoucherCreated}
       />

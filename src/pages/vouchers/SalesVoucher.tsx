@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { VoucherForm } from '@/components/vouchers/VoucherForm';
+import { InvoiceVoucherForm } from '@/components/vouchers/InvoiceVoucherForm';
 import { VoucherList } from '@/components/vouchers/VoucherList';
 import { toast } from 'sonner';
 
 const SalesVoucher = () => {
-  const { user } = useAuth();
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +49,7 @@ const SalesVoucher = () => {
         <p className="text-sm text-muted-foreground">Record sales transactions</p>
       </div>
       
-      <VoucherForm 
+      <InvoiceVoucherForm 
         voucherType="sales" 
         onSuccess={handleVoucherCreated}
       />
