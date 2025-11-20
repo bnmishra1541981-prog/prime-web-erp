@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
   useSidebar,
 } from '@/components/ui/sidebar';
 import {
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
+import solviserLogo from '@/assets/solviser-logo.png';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -84,6 +86,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
+      <SidebarHeader className="border-b border-sidebar-border p-4">
+        <div className="flex items-center gap-2">
+          <img 
+            src={solviserLogo} 
+            alt="Solviser" 
+            className={`transition-all ${isCollapsed ? 'h-8' : 'h-10'}`}
+          />
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         {menuItems.map((item) => (
           <SidebarGroup key={item.title}>
