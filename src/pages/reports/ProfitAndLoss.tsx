@@ -9,6 +9,7 @@ import { useReactToPrint } from 'react-to-print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { ProfitLossPrint } from '@/components/reports/ProfitLossPrint';
 
 interface LedgerEntry {
   ledgerName: string;
@@ -221,83 +222,122 @@ export default function ProfitAndLoss() {
             <Button onClick={fetchProfitAndLoss} disabled={loading} className="flex-1">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
             </Button>
-            <Button variant="outline" disabled={incomeData.length === 0}>
-              <FileDown className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              onClick={handlePrint} 
+              disabled={incomeData.length === 0}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleDownloadPDF} 
+              disabled={incomeData.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              PDF
             </Button>
           </div>
         </div>
       </Card>
 
       {incomeData.length > 0 || expenseData.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <div className="p-4 bg-muted font-bold">EXPENSES</div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Particulars</TableHead>
-                  <TableHead className="text-right">Amount (₹)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenseData.map((row, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{row.ledgerName}</TableCell>
-                    <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-                {netProfit > 0 && (
-                  <TableRow className="font-bold bg-muted">
-                    <TableCell>Net Profit</TableCell>
-                    <TableCell className="text-right">{netProfit.toFixed(2)}</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell className="font-bold">Total</TableCell>
-                  <TableCell className="text-right font-bold">
-                    {(totalExpense + (netProfit > 0 ? netProfit : 0)).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </Card>
+        <>
+          {/* Hidden Print Component */}
+          <div className="hidden">
+            {selectedCompanyData && (
+              <ProfitLossPrint
+                ref={printRef}
+                company={{
+                  name: selectedCompanyData.name,
+                  address: selectedCompanyData.address,
+                  gstin: selectedCompanyData.gstin,
+                  pan: selectedCompanyData.pan,
+                }}
+                fromDate={fromDate}
+                toDate={toDate}
+                expenditure={expenseData}
+                income={incomeData}
+                totalExpenditure={totalExpense}
+                totalIncome={totalIncome}
+                netProfit={netProfit}
+                netLoss={Math.abs(netProfit < 0 ? netProfit : 0)}
+              />
+            )}
+          </div>
 
-          <Card>
-            <div className="p-4 bg-muted font-bold">INCOME</div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Particulars</TableHead>
-                  <TableHead className="text-right">Amount (₹)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {incomeData.map((row, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{row.ledgerName}</TableCell>
-                    <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
+          {/* Screen Display */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <div className="p-4 bg-muted font-bold">EXPENSES</div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Particulars</TableHead>
+                    <TableHead className="text-right">Amount (₹)</TableHead>
                   </TableRow>
-                ))}
-                {netProfit < 0 && (
-                  <TableRow className="font-bold bg-destructive/10">
-                    <TableCell>Net Loss</TableCell>
-                    <TableCell className="text-right">{Math.abs(netProfit).toFixed(2)}</TableCell>
+                </TableHeader>
+                <TableBody>
+                  {expenseData.map((row, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{row.ledgerName}</TableCell>
+                      <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {netProfit > 0 && (
+                    <TableRow className="font-bold bg-muted">
+                      <TableCell>Net Profit</TableCell>
+                      <TableCell className="text-right">{netProfit.toFixed(2)}</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell className="font-bold">Total</TableCell>
+                    <TableCell className="text-right font-bold">
+                      {(totalExpense + (netProfit > 0 ? netProfit : 0)).toFixed(2)}
+                    </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell className="font-bold">Total</TableCell>
-                  <TableCell className="text-right font-bold">
-                    {(totalIncome + (netProfit < 0 ? Math.abs(netProfit) : 0)).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </Card>
-        </div>
+                </TableFooter>
+              </Table>
+            </Card>
+
+            <Card>
+              <div className="p-4 bg-muted font-bold">INCOME</div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Particulars</TableHead>
+                    <TableHead className="text-right">Amount (₹)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {incomeData.map((row, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{row.ledgerName}</TableCell>
+                      <TableCell className="text-right">{row.amount.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {netProfit < 0 && (
+                    <TableRow className="font-bold bg-destructive/10">
+                      <TableCell>Net Loss</TableCell>
+                      <TableCell className="text-right">{Math.abs(netProfit).toFixed(2)}</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell className="font-bold">Total</TableCell>
+                    <TableCell className="text-right font-bold">
+                      {(totalIncome + (netProfit < 0 ? Math.abs(netProfit) : 0)).toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </Card>
+          </div>
+        </>
       ) : null}
     </div>
   );
