@@ -36,6 +36,11 @@ const menuItems = [
     subItems: [
       { title: 'Companies', url: '/companies', icon: Building2 },
       { title: 'Ledgers', url: '/ledgers', icon: Users },
+      { title: 'Stock Groups', url: '/masters/stock-groups', icon: Package },
+      { title: 'Stock Items', url: '/masters/stock-items', icon: Package },
+      { title: 'Godowns', url: '/masters/godowns', icon: Building2 },
+      { title: 'GST Rates', url: '/masters/gst-rates', icon: FileText },
+      { title: 'Cost Centers', url: '/masters/cost-centers', icon: Settings },
     ],
   },
   {
@@ -46,6 +51,8 @@ const menuItems = [
       { title: 'Purchase', url: '/vouchers/purchase', icon: Package },
       { title: 'Payment', url: '/vouchers/payment', icon: DollarSign },
       { title: 'Receipt', url: '/vouchers/receipt', icon: DollarSign },
+      { title: 'Journal', url: '/vouchers/journal', icon: FileText },
+      { title: 'Contra', url: '/vouchers/contra', icon: DollarSign },
     ],
   },
   {
@@ -54,6 +61,9 @@ const menuItems = [
     subItems: [
       { title: 'Day Book', url: '/reports/daybook', icon: FileText },
       { title: 'Ledger Report', url: '/reports/ledger', icon: Users },
+      { title: 'Trial Balance', url: '/reports/trialbalance', icon: FileText },
+      { title: 'Profit & Loss', url: '/reports/profitandloss', icon: TrendingUp },
+      { title: 'Balance Sheet', url: '/reports/balancesheet', icon: FileText },
     ],
   },
 ];

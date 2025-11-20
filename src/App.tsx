@@ -16,8 +16,18 @@ import PaymentVoucher from "./pages/vouchers/PaymentVoucher";
 import ReceiptVoucher from "./pages/vouchers/ReceiptVoucher";
 import DayBook from "./pages/reports/DayBook";
 import LedgerReport from "./pages/reports/LedgerReport";
+import TrialBalance from "./pages/reports/TrialBalance";
+import ProfitAndLoss from "./pages/reports/ProfitAndLoss";
+import BalanceSheet from "./pages/reports/BalanceSheet";
 import InvoiceDemo from "./pages/InvoiceDemo";
 import Notifications from "./pages/Notifications";
+import StockGroups from "./pages/masters/StockGroups";
+import StockItems from "./pages/masters/StockItems";
+import Godowns from "./pages/masters/Godowns";
+import GSTRates from "./pages/masters/GSTRates";
+import CostCenters from "./pages/masters/CostCenters";
+import JournalVoucher from "./pages/vouchers/JournalVoucher";
+import ContraVoucher from "./pages/vouchers/ContraVoucher";
 import { MainLayout } from "./components/MainLayout";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -135,10 +145,90 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/reports/trialbalance"
+        element={
+          <ProtectedRoute>
+            <TrialBalance />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/profitandloss"
+        element={
+          <ProtectedRoute>
+            <ProfitAndLoss />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/balancesheet"
+        element={
+          <ProtectedRoute>
+            <BalanceSheet />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/notifications"
         element={
           <ProtectedRoute>
             <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/masters/stock-groups"
+        element={
+          <ProtectedRoute>
+            <StockGroups />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/masters/stock-items"
+        element={
+          <ProtectedRoute>
+            <StockItems />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/masters/godowns"
+        element={
+          <ProtectedRoute>
+            <Godowns />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/masters/gst-rates"
+        element={
+          <ProtectedRoute>
+            <GSTRates />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/masters/cost-centers"
+        element={
+          <ProtectedRoute>
+            <CostCenters />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vouchers/journal"
+        element={
+          <ProtectedRoute>
+            <JournalVoucher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vouchers/contra"
+        element={
+          <ProtectedRoute>
+            <ContraVoucher />
           </ProtectedRoute>
         }
       />
