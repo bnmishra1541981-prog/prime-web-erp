@@ -14,40 +14,182 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_reconciliation: {
+        Row: {
+          amount: number
+          bank_ledger_id: string
+          bank_statement_date: string | null
+          cheque_number: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          is_reconciled: boolean | null
+          narration: string | null
+          reconciled_date: string | null
+          transaction_date: string
+          updated_at: string | null
+          voucher_id: string | null
+        }
+        Insert: {
+          amount: number
+          bank_ledger_id: string
+          bank_statement_date?: string | null
+          cheque_number?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_reconciled?: boolean | null
+          narration?: string | null
+          reconciled_date?: string | null
+          transaction_date: string
+          updated_at?: string | null
+          voucher_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_ledger_id?: string
+          bank_statement_date?: string | null
+          cheque_number?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_reconciled?: boolean | null
+          narration?: string | null
+          reconciled_date?: string | null
+          transaction_date?: string
+          updated_at?: string | null
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_bank_ledger_id_fkey"
+            columns: ["bank_ledger_id"]
+            isOneToOne: false
+            referencedRelation: "ledgers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          budgeted_amount: number
+          company_id: string
+          created_at: string | null
+          financial_year: string
+          id: string
+          ledger_id: string
+          period: string
+          updated_at: string | null
+        }
+        Insert: {
+          budgeted_amount: number
+          company_id: string
+          created_at?: string | null
+          financial_year: string
+          id?: string
+          ledger_id: string
+          period: string
+          updated_at?: string | null
+        }
+        Update: {
+          budgeted_amount?: number
+          company_id?: string
+          created_at?: string | null
+          financial_year?: string
+          id?: string
+          ledger_id?: string
+          period?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_ledger_id_fkey"
+            columns: ["ledger_id"]
+            isOneToOne: false
+            referencedRelation: "ledgers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
+          bank_account_number: string | null
+          bank_ifsc: string | null
+          bank_name: string | null
           created_at: string
           email: string | null
+          enable_gst: boolean | null
           financial_year_start: string | null
+          gst_registration_type: string | null
           gstin: string | null
+          gstin_state_code: string | null
           id: string
           name: string
+          pan: string | null
           phone: string | null
+          state: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           address?: string | null
+          bank_account_number?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
           created_at?: string
           email?: string | null
+          enable_gst?: boolean | null
           financial_year_start?: string | null
+          gst_registration_type?: string | null
           gstin?: string | null
+          gstin_state_code?: string | null
           id?: string
           name: string
+          pan?: string | null
           phone?: string | null
+          state?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           address?: string | null
+          bank_account_number?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
           created_at?: string
           email?: string | null
+          enable_gst?: boolean | null
           financial_year_start?: string | null
+          gst_registration_type?: string | null
           gstin?: string | null
+          gstin_state_code?: string | null
           id?: string
           name?: string
+          pan?: string | null
           phone?: string | null
+          state?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -61,6 +203,129 @@ export type Database = {
           },
         ]
       }
+      cost_centers: {
+        Row: {
+          category: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      godowns: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "godowns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gst_rates: {
+        Row: {
+          cess_rate: number | null
+          cgst_rate: number | null
+          company_id: string
+          created_at: string | null
+          id: string
+          igst_rate: number | null
+          is_active: boolean | null
+          name: string
+          sgst_rate: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          cess_rate?: number | null
+          cgst_rate?: number | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          igst_rate?: number | null
+          is_active?: boolean | null
+          name: string
+          sgst_rate?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          cess_rate?: number | null
+          cgst_rate?: number | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          igst_rate?: number | null
+          is_active?: boolean | null
+          name?: string
+          sgst_rate?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gst_rates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ledgers: {
         Row: {
           address: string | null
@@ -69,12 +334,17 @@ export type Database = {
           created_at: string
           current_balance: number | null
           email: string | null
+          enable_gst: boolean | null
           gstin: string | null
+          gstin_state_code: string | null
           id: string
           ledger_type: Database["public"]["Enums"]["ledger_type"]
           name: string
           opening_balance: number | null
+          pan: string | null
           phone: string | null
+          state: string | null
+          tax_type: string | null
           updated_at: string
         }
         Insert: {
@@ -84,12 +354,17 @@ export type Database = {
           created_at?: string
           current_balance?: number | null
           email?: string | null
+          enable_gst?: boolean | null
           gstin?: string | null
+          gstin_state_code?: string | null
           id?: string
           ledger_type: Database["public"]["Enums"]["ledger_type"]
           name: string
           opening_balance?: number | null
+          pan?: string | null
           phone?: string | null
+          state?: string | null
+          tax_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -99,12 +374,17 @@ export type Database = {
           created_at?: string
           current_balance?: number | null
           email?: string | null
+          enable_gst?: boolean | null
           gstin?: string | null
+          gstin_state_code?: string | null
           id?: string
           ledger_type?: Database["public"]["Enums"]["ledger_type"]
           name?: string
           opening_balance?: number | null
+          pan?: string | null
           phone?: string | null
+          state?: string | null
+          tax_type?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -182,40 +462,249 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_groups: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+          parent_group_id: string | null
+          under_group: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          parent_group_id?: string | null
+          under_group?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          parent_group_id?: string | null
+          under_group?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_groups_parent_group_id_fkey"
+            columns: ["parent_group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_items: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          current_balance: number | null
+          current_value: number | null
+          description: string | null
+          godown_id: string | null
+          gst_rate_id: string | null
+          hsn_code: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          opening_balance: number | null
+          opening_rate: number | null
+          opening_value: number | null
+          reorder_level: number | null
+          stock_group_id: string | null
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          current_balance?: number | null
+          current_value?: number | null
+          description?: string | null
+          godown_id?: string | null
+          gst_rate_id?: string | null
+          hsn_code?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          opening_balance?: number | null
+          opening_rate?: number | null
+          opening_value?: number | null
+          reorder_level?: number | null
+          stock_group_id?: string | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          current_balance?: number | null
+          current_value?: number | null
+          description?: string | null
+          godown_id?: string | null
+          gst_rate_id?: string | null
+          hsn_code?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          opening_balance?: number | null
+          opening_rate?: number | null
+          opening_value?: number | null
+          reorder_level?: number | null
+          stock_group_id?: string | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_godown_id_fkey"
+            columns: ["godown_id"]
+            isOneToOne: false
+            referencedRelation: "godowns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_gst_rate_id_fkey"
+            columns: ["gst_rate_id"]
+            isOneToOne: false
+            referencedRelation: "gst_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_stock_group_id_fkey"
+            columns: ["stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voucher_entries: {
         Row: {
+          amount: number | null
+          cess_amount: number | null
+          cess_rate: number | null
+          cgst_amount: number | null
+          cgst_rate: number | null
+          cost_center_id: string | null
           created_at: string
           credit_amount: number | null
           debit_amount: number | null
+          discount_amount: number | null
+          discount_percent: number | null
+          godown_id: string | null
           id: string
+          igst_amount: number | null
+          igst_rate: number | null
           ledger_id: string
           narration: string | null
+          quantity: number | null
+          rate: number | null
+          sgst_amount: number | null
+          sgst_rate: number | null
+          stock_item_id: string | null
+          taxable_amount: number | null
           voucher_id: string
         }
         Insert: {
+          amount?: number | null
+          cess_amount?: number | null
+          cess_rate?: number | null
+          cgst_amount?: number | null
+          cgst_rate?: number | null
+          cost_center_id?: string | null
           created_at?: string
           credit_amount?: number | null
           debit_amount?: number | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          godown_id?: string | null
           id?: string
+          igst_amount?: number | null
+          igst_rate?: number | null
           ledger_id: string
           narration?: string | null
+          quantity?: number | null
+          rate?: number | null
+          sgst_amount?: number | null
+          sgst_rate?: number | null
+          stock_item_id?: string | null
+          taxable_amount?: number | null
           voucher_id: string
         }
         Update: {
+          amount?: number | null
+          cess_amount?: number | null
+          cess_rate?: number | null
+          cgst_amount?: number | null
+          cgst_rate?: number | null
+          cost_center_id?: string | null
           created_at?: string
           credit_amount?: number | null
           debit_amount?: number | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          godown_id?: string | null
           id?: string
+          igst_amount?: number | null
+          igst_rate?: number | null
           ledger_id?: string
           narration?: string | null
+          quantity?: number | null
+          rate?: number | null
+          sgst_amount?: number | null
+          sgst_rate?: number | null
+          stock_item_id?: string | null
+          taxable_amount?: number | null
           voucher_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "voucher_entries_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voucher_entries_godown_id_fkey"
+            columns: ["godown_id"]
+            isOneToOne: false
+            referencedRelation: "godowns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "voucher_entries_ledger_id_fkey"
             columns: ["ledger_id"]
             isOneToOne: false
             referencedRelation: "ledgers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voucher_entries_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
           {
@@ -289,9 +778,15 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          due_date: string | null
+          godown_id: string | null
           id: string
           narration: string | null
           party_ledger_id: string | null
+          place_of_supply: string | null
+          reference_date: string | null
+          reference_number: string | null
+          shipping_address: string | null
           total_amount: number
           updated_at: string
           voucher_date: string
@@ -302,9 +797,15 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          due_date?: string | null
+          godown_id?: string | null
           id?: string
           narration?: string | null
           party_ledger_id?: string | null
+          place_of_supply?: string | null
+          reference_date?: string | null
+          reference_number?: string | null
+          shipping_address?: string | null
           total_amount?: number
           updated_at?: string
           voucher_date?: string
@@ -315,9 +816,15 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          due_date?: string | null
+          godown_id?: string | null
           id?: string
           narration?: string | null
           party_ledger_id?: string | null
+          place_of_supply?: string | null
+          reference_date?: string | null
+          reference_number?: string | null
+          shipping_address?: string | null
           total_amount?: number
           updated_at?: string
           voucher_date?: string
@@ -340,6 +847,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vouchers_godown_id_fkey"
+            columns: ["godown_id"]
+            isOneToOne: false
+            referencedRelation: "godowns"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vouchers_party_ledger_id_fkey"
             columns: ["party_ledger_id"]
             isOneToOne: false
@@ -357,15 +871,29 @@ export type Database = {
     }
     Enums: {
       ledger_type:
-        | "customer"
-        | "supplier"
-        | "bank"
-        | "cash"
-        | "expense"
-        | "income"
-        | "asset"
-        | "liability"
-        | "capital"
+        | "capital_account"
+        | "reserves_and_surplus"
+        | "secured_loans"
+        | "unsecured_loans"
+        | "duties_and_taxes"
+        | "sundry_creditors"
+        | "fixed_assets"
+        | "investments"
+        | "current_assets"
+        | "sundry_debtors"
+        | "cash_in_hand"
+        | "bank_accounts"
+        | "stock_in_hand"
+        | "deposits_assets"
+        | "loans_and_advances_assets"
+        | "sales_accounts"
+        | "direct_incomes"
+        | "indirect_incomes"
+        | "purchase_accounts"
+        | "direct_expenses"
+        | "indirect_expenses"
+        | "suspense_account"
+        | "branch_divisions"
       notification_status: "pending" | "accepted" | "rejected" | "reviewed"
       voucher_type:
         | "sales"
@@ -377,6 +905,7 @@ export type Database = {
         | "debit_note"
         | "credit_note"
         | "stock_journal"
+        | "physical_stock"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -505,15 +1034,29 @@ export const Constants = {
   public: {
     Enums: {
       ledger_type: [
-        "customer",
-        "supplier",
-        "bank",
-        "cash",
-        "expense",
-        "income",
-        "asset",
-        "liability",
-        "capital",
+        "capital_account",
+        "reserves_and_surplus",
+        "secured_loans",
+        "unsecured_loans",
+        "duties_and_taxes",
+        "sundry_creditors",
+        "fixed_assets",
+        "investments",
+        "current_assets",
+        "sundry_debtors",
+        "cash_in_hand",
+        "bank_accounts",
+        "stock_in_hand",
+        "deposits_assets",
+        "loans_and_advances_assets",
+        "sales_accounts",
+        "direct_incomes",
+        "indirect_incomes",
+        "purchase_accounts",
+        "direct_expenses",
+        "indirect_expenses",
+        "suspense_account",
+        "branch_divisions",
       ],
       notification_status: ["pending", "accepted", "rejected", "reviewed"],
       voucher_type: [
@@ -526,6 +1069,7 @@ export const Constants = {
         "debit_note",
         "credit_note",
         "stock_journal",
+        "physical_stock",
       ],
     },
   },
