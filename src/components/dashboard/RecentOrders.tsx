@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@/lib/currency';
 
 interface Order {
   id: string;
@@ -15,7 +16,7 @@ interface Order {
   party_name: string;
 }
 
-export function RecentOrders({ companyId }: { companyId: string }) {
+export function RecentOrders({ companyId, currency = 'INR' }: { companyId: string; currency?: string }) {
   const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -108,7 +109,7 @@ export function RecentOrders({ companyId }: { companyId: string }) {
                         </div>
                         <div className="text-right">
                           <div className="font-bold">
-                            ₹{Number(order.total_amount).toLocaleString('en-IN')}
+                            {formatCurrency(Number(order.total_amount), currency)}
                           </div>
                           <div className={`text-xs px-2 py-1 rounded-full inline-block mt-1 ${
                             order.voucher_type === 'sales' 

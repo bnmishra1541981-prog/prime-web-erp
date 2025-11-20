@@ -139,6 +139,7 @@ export type Database = {
           bank_ifsc: string | null
           bank_name: string | null
           created_at: string
+          currency: string | null
           email: string | null
           enable_gst: boolean | null
           financial_year_start: string | null
@@ -159,6 +160,7 @@ export type Database = {
           bank_ifsc?: string | null
           bank_name?: string | null
           created_at?: string
+          currency?: string | null
           email?: string | null
           enable_gst?: boolean | null
           financial_year_start?: string | null
@@ -179,6 +181,7 @@ export type Database = {
           bank_ifsc?: string | null
           bank_name?: string | null
           created_at?: string
+          currency?: string | null
           email?: string | null
           enable_gst?: boolean | null
           financial_year_start?: string | null
