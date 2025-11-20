@@ -8,6 +8,14 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import Companies from "./pages/Companies";
+import Ledgers from "./pages/Ledgers";
+import SalesVoucher from "./pages/vouchers/SalesVoucher";
+import PurchaseVoucher from "./pages/vouchers/PurchaseVoucher";
+import PaymentVoucher from "./pages/vouchers/PaymentVoucher";
+import ReceiptVoucher from "./pages/vouchers/ReceiptVoucher";
+import DayBook from "./pages/reports/DayBook";
+import LedgerReport from "./pages/reports/LedgerReport";
 import { MainLayout } from "./components/MainLayout";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -57,6 +65,70 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/companies"
+        element={
+          <ProtectedRoute>
+            <Companies />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ledgers"
+        element={
+          <ProtectedRoute>
+            <Ledgers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vouchers/sales"
+        element={
+          <ProtectedRoute>
+            <SalesVoucher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vouchers/purchase"
+        element={
+          <ProtectedRoute>
+            <PurchaseVoucher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vouchers/payment"
+        element={
+          <ProtectedRoute>
+            <PaymentVoucher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vouchers/receipt"
+        element={
+          <ProtectedRoute>
+            <ReceiptVoucher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/daybook"
+        element={
+          <ProtectedRoute>
+            <DayBook />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/ledger"
+        element={
+          <ProtectedRoute>
+            <LedgerReport />
           </ProtectedRoute>
         }
       />
