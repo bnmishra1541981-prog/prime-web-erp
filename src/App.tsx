@@ -26,6 +26,7 @@ import StockItems from "./pages/masters/StockItems";
 import Godowns from "./pages/masters/Godowns";
 import GSTRates from "./pages/masters/GSTRates";
 import CostCenters from "./pages/masters/CostCenters";
+import LedgerGroups from "./pages/masters/LedgerGroups";
 import JournalVoucher from "./pages/vouchers/JournalVoucher";
 import ContraVoucher from "./pages/vouchers/ContraVoucher";
 import InvoiceView from "./pages/vouchers/InvoiceView";
@@ -174,6 +175,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/masters/ledger-groups"
+        element={
+          <ProtectedRoute>
+            <LedgerGroups />
           </ProtectedRoute>
         }
       />

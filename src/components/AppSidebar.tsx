@@ -38,6 +38,7 @@ const menuItems = [
     subItems: [
       { title: 'Companies', url: '/companies', icon: Building2 },
       { title: 'Ledgers', url: '/ledgers', icon: Users },
+      { title: 'Ledger Groups', url: '/masters/ledger-groups', icon: FileText },
       { title: 'Stock Groups', url: '/masters/stock-groups', icon: Package },
       { title: 'Stock Items', url: '/masters/stock-items', icon: Package },
       { title: 'Godowns', url: '/masters/godowns', icon: Building2 },
