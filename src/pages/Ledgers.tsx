@@ -34,21 +34,51 @@ interface Company {
 }
 
 const ledgerTypes = [
-  { value: 'customer', label: 'Customer' },
-  { value: 'supplier', label: 'Supplier' },
-  { value: 'bank', label: 'Bank' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-  { value: 'asset', label: 'Asset' },
-  { value: 'liability', label: 'Liability' },
-  { value: 'capital', label: 'Capital' },
+  // Capital & Liability Groups
+  { value: 'capital_account', label: 'Capital Account', category: 'Capital & Liability' },
+  { value: 'reserves_and_surplus', label: 'Reserves & Surplus', category: 'Capital & Liability' },
+  { value: 'secured_loans', label: 'Secured Loans', category: 'Capital & Liability' },
+  { value: 'unsecured_loans', label: 'Unsecured Loans', category: 'Capital & Liability' },
+  { value: 'duties_and_taxes', label: 'Duties & Taxes', category: 'Capital & Liability' },
+  { value: 'sundry_creditors', label: 'Sundry Creditors', category: 'Capital & Liability' },
+  { value: 'suspense_account', label: 'Suspense A/c', category: 'Capital & Liability' },
+  { value: 'current_liabilities', label: 'Current Liabilities', category: 'Capital & Liability' },
+  { value: 'loans_liability', label: 'Loans (Liability)', category: 'Capital & Liability' },
+  { value: 'bank_od_account', label: 'Bank OD A/c', category: 'Capital & Liability' },
+  { value: 'provisions', label: 'Provisions', category: 'Capital & Liability' },
+  
+  // Assets Groups
+  { value: 'fixed_assets', label: 'Fixed Assets', category: 'Assets' },
+  { value: 'investments', label: 'Investments', category: 'Assets' },
+  { value: 'current_assets', label: 'Current Assets', category: 'Assets' },
+  { value: 'sundry_debtors', label: 'Sundry Debtors', category: 'Assets' },
+  { value: 'cash_in_hand', label: 'Cash-in-Hand', category: 'Assets' },
+  { value: 'bank_accounts', label: 'Bank Accounts', category: 'Assets' },
+  { value: 'stock_in_hand', label: 'Stock-in-Hand', category: 'Assets' },
+  { value: 'deposits_assets', label: 'Deposits (Asset)', category: 'Assets' },
+  { value: 'loans_and_advances_assets', label: 'Loans & Advances (Asset)', category: 'Assets' },
+  
+  // Income Groups
+  { value: 'sales_accounts', label: 'Sales Accounts', category: 'Income' },
+  { value: 'direct_incomes', label: 'Direct Incomes', category: 'Income' },
+  { value: 'indirect_incomes', label: 'Indirect Incomes', category: 'Income' },
+  
+  // Expense Groups
+  { value: 'purchase_accounts', label: 'Purchase Accounts', category: 'Expense' },
+  { value: 'direct_expenses', label: 'Direct Expenses', category: 'Expense' },
+  { value: 'indirect_expenses', label: 'Indirect Expenses', category: 'Expense' },
+  
+  // Non-Revenue Groups
+  { value: 'branch_divisions', label: 'Branch / Divisions', category: 'Non-Revenue' },
+  { value: 'misc_expenses_asset', label: 'Misc. Expenses (Asset)', category: 'Non-Revenue' },
+  { value: 'profit_and_loss_account', label: 'Profit & Loss A/c', category: 'Non-Revenue' },
 ];
 
 const Ledgers = () => {
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creatingDefaults, setCreatingDefaults] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLedger, setEditingLedger] = useState<Ledger | null>(null);
   const [formData, setFormData] = useState<{
@@ -63,7 +93,7 @@ const Ledgers = () => {
     contact_person: string;
   }>({
     name: '',
-    ledger_type: 'customer' as LedgerType,
+    ledger_type: 'sundry_debtors' as LedgerType,
     opening_balance: '0',
     company_id: '',
     email: '',
@@ -155,7 +185,7 @@ const Ledgers = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      ledger_type: 'customer' as LedgerType,
+      ledger_type: 'sundry_debtors' as LedgerType,
       opening_balance: '0',
       company_id: companies[0]?.id || '',
       email: '',
@@ -183,19 +213,55 @@ const Ledgers = () => {
     setIsDialogOpen(true);
   };
 
+  const createDefaultLedgers = async () => {
+    if (!formData.company_id) {
+      toast.error('Please select a company first');
+      return;
+    }
+
+    setCreatingDefaults(true);
+    try {
+      const defaultLedgers = ledgerTypes.map(type => ({
+        name: type.label,
+        ledger_type: type.value as LedgerType,
+        opening_balance: 0,
+        current_balance: 0,
+        company_id: formData.company_id,
+      }));
+
+      const { error } = await supabase
+        .from('ledgers')
+        .insert(defaultLedgers);
+
+      if (error) throw error;
+      
+      toast.success(`Created ${defaultLedgers.length} default ledger groups`);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setCreatingDefaults(false);
+    }
+  };
+
   const getLedgerTypeBadgeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      customer: 'bg-blue-500',
-      supplier: 'bg-purple-500',
-      bank: 'bg-green-500',
-      cash: 'bg-yellow-500',
-      expense: 'bg-red-500',
-      income: 'bg-emerald-500',
-      asset: 'bg-cyan-500',
-      liability: 'bg-orange-500',
-      capital: 'bg-indigo-500',
-    };
-    return colors[type] || 'bg-gray-500';
+    // Color based on category
+    if (type.includes('capital') || type.includes('reserves') || type.includes('loans') || 
+        type.includes('creditors') || type.includes('liabilities') || type.includes('provisions')) {
+      return 'bg-orange-500';
+    }
+    if (type.includes('assets') || type.includes('debtors') || type.includes('bank') || 
+        type.includes('cash') || type.includes('stock') || type.includes('investments') || 
+        type.includes('deposits')) {
+      return 'bg-cyan-500';
+    }
+    if (type.includes('sales') || type.includes('income')) {
+      return 'bg-emerald-500';
+    }
+    if (type.includes('purchase') || type.includes('expense')) {
+      return 'bg-red-500';
+    }
+    return 'bg-gray-500';
   };
 
   return (
@@ -205,14 +271,26 @@ const Ledgers = () => {
           <h1 className="text-2xl font-bold text-foreground">Ledgers</h1>
           <p className="text-sm text-muted-foreground">Manage your accounting ledgers</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Ledger
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={createDefaultLedgers}
+            disabled={creatingDefaults || !companies.length}
+          >
+            {creatingDefaults ? (
+              <>Creating...</>
+            ) : (
+              <>Create Default Groups</>
+            )}
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Ledger
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingLedger ? 'Edit Ledger' : 'Add New Ledger'}</DialogTitle>
               <DialogDescription>
@@ -242,11 +320,24 @@ const Ledgers = () => {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      {ledgerTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
+                    <SelectContent className="max-h-[400px]">
+                      {Object.entries(
+                        ledgerTypes.reduce((acc, type) => {
+                          if (!acc[type.category]) acc[type.category] = [];
+                          acc[type.category].push(type);
+                          return acc;
+                        }, {} as Record<string, typeof ledgerTypes>)
+                      ).map(([category, types]) => (
+                        <div key={category}>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            {category}
+                          </div>
+                          {types.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </div>
                       ))}
                     </SelectContent>
                   </Select>
@@ -323,6 +414,7 @@ const Ledgers = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
