@@ -77,7 +77,11 @@ export default function BalanceSheet() {
         .from('ledgers')
         .select('*')
         .eq('company_id', selectedCompany)
-        .in('ledger_type', ['capital_account', 'reserves_and_surplus', 'secured_loans', 'unsecured_loans', 'sundry_creditors', 'duties_and_taxes']);
+        .in('ledger_type', [
+          'capital_account', 'reserves_and_surplus', 'secured_loans', 'unsecured_loans', 
+          'sundry_creditors', 'duties_and_taxes', 'suspense_account', 'current_liabilities',
+          'loans_liability', 'bank_od_account', 'provisions'
+        ]);
 
       if (liabilityError) throw liabilityError;
 
@@ -86,7 +90,11 @@ export default function BalanceSheet() {
         .from('ledgers')
         .select('*')
         .eq('company_id', selectedCompany)
-        .in('ledger_type', ['fixed_assets', 'investments', 'current_assets', 'sundry_debtors', 'cash_in_hand', 'bank_accounts', 'stock_in_hand', 'deposits_assets', 'loans_and_advances_assets']);
+        .in('ledger_type', [
+          'fixed_assets', 'investments', 'current_assets', 'sundry_debtors', 
+          'cash_in_hand', 'bank_accounts', 'stock_in_hand', 'deposits_assets', 
+          'loans_and_advances_assets'
+        ]);
 
       if (assetError) throw assetError;
 
@@ -140,21 +148,28 @@ export default function BalanceSheet() {
 
   const formatGroupName = (ledgerType: string) => {
     const mapping: Record<string, string> = {
+      // Capital & Liability
       'capital_account': 'Capital Account',
       'reserves_and_surplus': 'Reserves & Surplus',
       'secured_loans': 'Secured Loans',
       'unsecured_loans': 'Unsecured Loans',
       'sundry_creditors': 'Sundry Creditors',
       'duties_and_taxes': 'Duties & Taxes',
+      'suspense_account': 'Suspense A/c',
+      'current_liabilities': 'Current Liabilities',
+      'loans_liability': 'Loans (Liability)',
+      'bank_od_account': 'Bank OD A/c',
+      'provisions': 'Provisions',
+      // Assets
       'fixed_assets': 'Fixed Assets',
       'investments': 'Investments',
       'current_assets': 'Current Assets',
       'sundry_debtors': 'Sundry Debtors',
-      'cash_in_hand': 'Cash in Hand',
+      'cash_in_hand': 'Cash-in-Hand',
       'bank_accounts': 'Bank Accounts',
-      'stock_in_hand': 'Stock in Hand',
-      'deposits_assets': 'Deposits (Assets)',
-      'loans_and_advances_assets': 'Loans & Advances (Assets)',
+      'stock_in_hand': 'Stock-in-Hand',
+      'deposits_assets': 'Deposits (Asset)',
+      'loans_and_advances_assets': 'Loans & Advances (Asset)',
     };
     return mapping[ledgerType] || ledgerType;
   };

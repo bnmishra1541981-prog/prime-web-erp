@@ -925,6 +925,11 @@ export type Database = {
         | "unsecured_loans"
         | "duties_and_taxes"
         | "sundry_creditors"
+        | "suspense_account"
+        | "current_liabilities"
+        | "loans_liability"
+        | "bank_od_account"
+        | "provisions"
         | "fixed_assets"
         | "investments"
         | "current_assets"
@@ -940,8 +945,9 @@ export type Database = {
         | "purchase_accounts"
         | "direct_expenses"
         | "indirect_expenses"
-        | "suspense_account"
         | "branch_divisions"
+        | "misc_expenses_asset"
+        | "profit_and_loss_account"
       notification_status:
         | "pending"
         | "accepted"
@@ -1094,6 +1100,11 @@ export const Constants = {
         "unsecured_loans",
         "duties_and_taxes",
         "sundry_creditors",
+        "suspense_account",
+        "current_liabilities",
+        "loans_liability",
+        "bank_od_account",
+        "provisions",
         "fixed_assets",
         "investments",
         "current_assets",
@@ -1109,8 +1120,9 @@ export const Constants = {
         "purchase_accounts",
         "direct_expenses",
         "indirect_expenses",
-        "suspense_account",
         "branch_divisions",
+        "misc_expenses_asset",
+        "profit_and_loss_account",
       ],
       notification_status: [
         "pending",
