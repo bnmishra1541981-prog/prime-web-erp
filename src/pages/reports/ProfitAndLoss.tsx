@@ -28,6 +28,8 @@ export default function ProfitAndLoss() {
   const [toDate, setToDate] = useState('');
   const [incomeData, setIncomeData] = useState<LedgerEntry[]>([]);
   const [expenseData, setExpenseData] = useState<LedgerEntry[]>([]);
+  const [openingStock, setOpeningStock] = useState<LedgerEntry[]>([]);
+  const [closingStock, setClosingStock] = useState<LedgerEntry[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedLedger, setSelectedLedger] = useState<{ id: string; name: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -73,6 +75,29 @@ export default function ProfitAndLoss() {
 
     setLoading(true);
     try {
+      // Fetch stock items for opening and closing stock
+      const { data: stockItems, error: stockError } = await supabase
+        .from('stock_items')
+        .select('*')
+        .eq('company_id', selectedCompany);
+
+      if (stockError) throw stockError;
+
+      const opening = stockItems?.map((item) => ({
+        ledgerName: item.name,
+        groupName: 'Opening Stock',
+        amount: Number(item.opening_value || 0),
+      })) || [];
+
+      const closing = stockItems?.map((item) => ({
+        ledgerName: item.name,
+        groupName: 'Closing Stock',
+        amount: Number(item.current_value || 0),
+      })) || [];
+
+      setOpeningStock(opening);
+      setClosingStock(closing);
+
       // Fetch income ledgers
       const { data: incomeLedgers, error: incomeError } = await supabase
         .from('ledgers')
@@ -191,12 +216,14 @@ export default function ProfitAndLoss() {
     pdf.save('Profit-Loss-Statement.pdf');
   };
 
-  // Calculate gross profit
+  // Calculate totals
+  const totalOpeningStock = openingStock.reduce((sum, item) => sum + item.amount, 0);
+  const totalClosingStock = closingStock.reduce((sum, item) => sum + item.amount, 0);
+  
   const totalSales = incomeData
     .filter(i => i.groupName === "Sales Accounts")
     .reduce((sum, item) => sum + item.amount, 0);
   
-  const openingStock = 0; // This should come from stock_items opening_value
   const totalPurchases = expenseData
     .filter(e => e.groupName === "Purchase Accounts")
     .reduce((sum, item) => sum + item.amount, 0);
@@ -205,7 +232,8 @@ export default function ProfitAndLoss() {
     .filter(e => e.groupName === "Direct Expenses")
     .reduce((sum, item) => sum + item.amount, 0);
   
-  const grossProfit = totalSales - (openingStock + totalPurchases + totalDirectExpenses);
+  // Gross Profit = (Sales + Closing Stock) - (Opening Stock + Purchase + Direct Expenses)
+  const grossProfit = (totalSales + totalClosingStock) - (totalOpeningStock + totalPurchases + totalDirectExpenses);
   
   const totalIndirectExpenses = expenseData
     .filter(e => e.groupName === "Indirect Expenses")
@@ -215,6 +243,7 @@ export default function ProfitAndLoss() {
     .filter(i => i.groupName === "Direct Incomes" || i.groupName === "Indirect Incomes")
     .reduce((sum, item) => sum + item.amount, 0);
 
+  // Net Profit = Gross Profit + Indirect Income - Indirect Expenses
   const netProfit = grossProfit + totalIndirectIncome - totalIndirectExpenses;
 
   const expenseGroups = groupByCategory(expenseData);
@@ -302,12 +331,15 @@ export default function ProfitAndLoss() {
                 }}
                 fromDate={fromDate}
                 toDate={toDate}
-                expenditure={expenseData}
-                income={incomeData}
-                totalExpenditure={totalDirectExpenses + totalPurchases + totalIndirectExpenses}
-                totalIncome={totalSales + totalIndirectIncome}
-                netProfit={netProfit > 0 ? netProfit : 0}
-                netLoss={netProfit < 0 ? Math.abs(netProfit) : 0}
+                openingStock={openingStock}
+                closingStock={closingStock}
+                purchaseAccounts={expenseData.filter(e => e.groupName === "Purchase Accounts")}
+                salesAccounts={incomeData.filter(i => i.groupName === "Sales Accounts")}
+                directExpenses={expenseData.filter(e => e.groupName === "Direct Expenses")}
+                indirectExpenses={expenseData.filter(e => e.groupName === "Indirect Expenses")}
+                indirectIncomes={incomeData.filter(i => i.groupName === "Direct Incomes" || i.groupName === "Indirect Incomes")}
+                grossProfit={grossProfit}
+                netProfit={netProfit}
               />
             )}
           </div>
@@ -322,10 +354,25 @@ export default function ProfitAndLoss() {
                   <Table>
                     <TableBody>
                       {/* Opening Stock */}
-                      <TableRow>
-                        <TableCell className="font-medium">Opening Stock</TableCell>
-                        <TableCell className="text-right">{openingStock.toFixed(2)}</TableCell>
+                      <TableRow 
+                        className="bg-yellow-100 cursor-pointer hover:bg-yellow-200"
+                        onClick={() => toggleGroup("Opening Stock")}
+                      >
+                        <TableCell className="font-bold">
+                          {expandedGroups.has("Opening Stock") ? "−" : "+"} Opening Stock
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {totalOpeningStock.toFixed(2)}
+                        </TableCell>
                       </TableRow>
+                      {expandedGroups.has("Opening Stock") && 
+                        openingStock.map((item, idx) => (
+                          <TableRow key={`opening-${idx}`}>
+                            <TableCell className="pl-8 text-sm italic">{item.ledgerName}</TableCell>
+                            <TableCell className="text-right text-sm">{item.amount.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))
+                      }
 
                       {/* Purchase Accounts */}
                       {expenseGroups["Purchase Accounts"] && (
@@ -393,10 +440,10 @@ export default function ProfitAndLoss() {
                         </TableRow>
                       )}
 
-                      <TableRow className="font-bold border-t border-b-2">
+                      <TableRow className="border-t-2 border-b-2">
                         <TableCell></TableCell>
-                        <TableCell className="text-right">
-                          {(openingStock + totalPurchases + totalDirectExpenses + Math.max(0, grossProfit)).toFixed(2)}
+                        <TableCell className="text-right font-bold">
+                          {(totalOpeningStock + totalPurchases + Math.max(0, grossProfit)).toFixed(2)}
                         </TableCell>
                       </TableRow>
 
@@ -437,10 +484,11 @@ export default function ProfitAndLoss() {
                         </TableRow>
                       )}
 
+                      {/* Total */}
                       <TableRow className="font-bold border-t-2">
                         <TableCell>Total</TableCell>
                         <TableCell className="text-right">
-                          {(totalIndirectExpenses + Math.max(0, netProfit) + (grossProfit < 0 ? Math.abs(grossProfit) : 0)).toFixed(2)}
+                          {(totalOpeningStock + totalPurchases + totalIndirectExpenses + Math.max(0, netProfit)).toFixed(2)}
                         </TableCell>
                       </TableRow>
                     </TableBody>
