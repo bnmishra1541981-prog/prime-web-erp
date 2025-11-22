@@ -86,222 +86,235 @@ export const ProfitLossPrint = forwardRef<HTMLDivElement, ProfitLossPrintProps>(
   };
 
   return (
-    <div ref={ref} className="bg-white p-8 text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px' }}>
+    <div ref={ref} className="bg-white p-8 text-black" style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
       {/* Header */}
       <div className="border-2 border-black">
-        <div className="text-center py-2 border-b border-black">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <img src={solviserLogo} alt="Logo" className="h-8" />
+        <div className="bg-gray-100 p-4 border-b-2 border-black text-center">
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <img src={solviserLogo} alt="Solviser" className="h-10" />
           </div>
-          <h1 className="text-lg font-bold">{company.name}</h1>
-          {company.address && <p className="text-xs">{company.address}</p>}
-          <div className="flex justify-center gap-4 text-xs">
+          <h1 className="text-xl font-bold">{company.name}</h1>
+          {company.address && <p className="text-xs mt-1">{company.address}</p>}
+          <div className="flex justify-center gap-4 text-xs mt-1">
             {company.gstin && <span>GSTIN: {company.gstin}</span>}
             {company.pan && <span>PAN: {company.pan}</span>}
           </div>
         </div>
 
-        <div className="text-center py-2 border-b border-black">
-          <h2 className="font-bold">
-            {company.name} P-{new Date(fromDate).toLocaleDateString('en-GB').split('/')[2].slice(-2)}-{new Date(toDate).toLocaleDateString('en-GB').split('/')[2].slice(-2)}
-          </h2>
-          <p className="text-xs">
-            {new Date(fromDate).toLocaleDateString('en-GB')} to {new Date(toDate).toLocaleDateString('en-GB')}
+        <div className="bg-gray-200 p-3 text-center border-b-2 border-black">
+          <h2 className="text-lg font-bold">PROFIT AND LOSS ACCOUNT</h2>
+          <p className="text-xs mt-1">
+            {new Date(fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} to {new Date(toDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-2">
+        <div className="grid grid-cols-2 border-b-2 border-black min-h-[600px]">
           {/* Left Side - Expenditure */}
-          <div className="border-r border-black">
-            <div className="px-2 py-1 border-b border-black">
-              <span className="font-bold">Particulars</span>
+          <div className="border-r-2 border-black">
+            <div className="bg-gray-100 p-2 border-b border-black">
+              <h3 className="font-bold text-sm">EXPENDITURE</h3>
             </div>
+            <div className="p-3">
 
-            {/* Opening Stock */}
-            <div className="bg-yellow-100 px-2 py-1">
-              <div className="flex justify-between font-bold">
-                <span>Opening Stock</span>
-                <span>{totalOpeningStock.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            {openingStock.map((item, idx) => (
-              <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
-                <span>{item.ledgerName}</span>
-                <span>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
-
-            {/* Purchase Accounts */}
-            <div className="px-2 py-1 mt-1">
-              <div className="flex justify-between font-bold">
-                <span>Purchase Accounts</span>
-                <span>{totalPurchases.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            {purchaseAccounts.map((item, idx) => (
-              <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
-                <span>{item.ledgerName}</span>
-                <span>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
-
-            {/* Gross Profit c/o */}
-            {grossProfit > 0 && (
-              <div className="px-2 py-1 mt-1 font-bold italic border-t border-black">
-                <div className="flex justify-between">
-                  <span>Gross Profit c/o</span>
-                  <span>{grossProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {/* Opening Stock */}
+              <div className="bg-yellow-100 px-2 py-1">
+                <div className="flex justify-between font-bold text-xs">
+                  <span>Opening Stock</span>
+                  <span className="font-mono">{totalOpeningStock.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
-            )}
+              {openingStock.map((item, idx) => (
+                <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
+                  <span className="text-gray-700">{item.ledgerName}</span>
+                  <span className="font-mono">{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
 
-            {/* Subtotal */}
-            <div className="px-2 py-1 border-t-2 border-b border-black">
-              <div className="flex justify-end font-bold">
-                <span>{leftSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-
-            {/* Indirect Expenses */}
-            <div className="px-2 py-1">
-              <div className="flex justify-between font-bold">
-                <span>Indirect Expenses</span>
-                <span>{totalIndirectExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            {indirectExpenses.map((item, idx) => (
-              <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
-                <span>{item.ledgerName}</span>
-                <span>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
-
-            {/* Net Profit */}
-            {netProfit > 0 && (
-              <div className="px-2 py-1 mt-1 font-bold">
-                <div className="flex justify-between">
-                  <span>Net Profit</span>
-                  <span>{netProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {/* Purchase Accounts */}
+              <div className="px-2 py-1 mt-1">
+                <div className="flex justify-between font-bold text-xs">
+                  <span>Purchase Accounts</span>
+                  <span className="font-mono">{totalPurchases.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
-            )}
+              {purchaseAccounts.map((item, idx) => (
+                <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
+                  <span className="text-gray-700">{item.ledgerName}</span>
+                  <span className="font-mono">{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
 
-            {/* Total */}
-            <div className="px-2 py-1 border-t-2 border-black font-bold">
-              <div className="flex justify-between">
-                <span>Total</span>
-                <span>{leftTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {/* Gross Profit c/o */}
+              {grossProfit > 0 && (
+                <div className="px-2 py-1 mt-1 font-bold italic border-t border-black text-xs">
+                  <div className="flex justify-between">
+                    <span>Gross Profit c/o</span>
+                    <span className="font-mono">{grossProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Subtotal */}
+              <div className="px-2 py-1 border-t-2 border-b border-black">
+                <div className="flex justify-end font-bold text-xs">
+                  <span className="font-mono">{leftSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
               </div>
+
+              {/* Indirect Expenses */}
+              <div className="px-2 py-1">
+                <div className="flex justify-between font-bold text-xs">
+                  <span>Indirect Expenses</span>
+                  <span className="font-mono">{totalIndirectExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+              {indirectExpenses.map((item, idx) => (
+                <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
+                  <span className="text-gray-700">{item.ledgerName}</span>
+                  <span className="font-mono">{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+
+              {/* Net Profit */}
+              {netProfit > 0 && (
+                <div className="px-2 py-1 mt-1 font-bold text-xs">
+                  <div className="flex justify-between">
+                    <span>Net Profit</span>
+                    <span className="font-mono">{netProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right Side - Income */}
           <div>
-            <div className="px-2 py-1 border-b border-black">
-              <span className="font-bold">Particulars</span>
+            <div className="bg-gray-100 p-2 border-b border-black">
+              <h3 className="font-bold text-sm">INCOME</h3>
             </div>
+            <div className="p-3">
 
-            {/* Sales Accounts */}
-            <div className="px-2 py-1">
-              <div className="flex justify-between font-bold">
-                <span>Sales Accounts</span>
-                <span>{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            {salesAccounts.map((item, idx) => (
-              <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
-                <span>{item.ledgerName}</span>
-                <span>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
-
-            {/* Direct Expenses */}
-            <div className="px-2 py-1 mt-1">
-              <div className="flex justify-between font-bold">
-                <span>Direct Expenses</span>
-                <span>{totalDirectExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            {directExpenses.map((item, idx) => (
-              <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
-                <span>{item.ledgerName}</span>
-                <span>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
-
-            {/* Closing Stock */}
-            <div className="px-2 py-1 mt-1">
-              <div className="flex justify-between font-bold">
-                <span>Closing Stock</span>
-                <span>{totalClosingStock.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            {closingStock.map((item, idx) => (
-              <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
-                <span>{item.ledgerName}</span>
-                <span>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
-
-            {/* Subtotal */}
-            <div className="px-2 py-1 border-t-2 border-b border-black">
-              <div className="flex justify-end font-bold">
-                <span>{rightSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-
-            {/* Gross Profit b/f */}
-            {grossProfit > 0 && (
-              <div className="px-2 py-1 font-bold italic">
-                <div className="flex justify-between">
-                  <span>Gross Profit b/f</span>
-                  <span>{grossProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {/* Sales Accounts */}
+              <div className="px-2 py-1">
+                <div className="flex justify-between font-bold text-xs">
+                  <span>Sales Accounts</span>
+                  <span className="font-mono">{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
-            )}
+              {salesAccounts.map((item, idx) => (
+                <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
+                  <span className="text-gray-700">{item.ledgerName}</span>
+                  <span className="font-mono">{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
 
-            {/* Indirect Incomes */}
-            <div className="px-2 py-1">
-              <div className="flex justify-between font-bold">
-                <span>Indirect Incomes</span>
-                <span>{totalIndirectIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {/* Direct Expenses */}
+              <div className="px-2 py-1 mt-1">
+                <div className="flex justify-between font-bold text-xs">
+                  <span>Direct Expenses</span>
+                  <span className="font-mono">{totalDirectExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
               </div>
-            </div>
-            {indirectIncomes.map((item, idx) => (
-              <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
-                <span>{item.ledgerName}</span>
-                <span>{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))}
+              {directExpenses.map((item, idx) => (
+                <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
+                  <span className="text-gray-700">{item.ledgerName}</span>
+                  <span className="font-mono">{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
 
-            {/* Total */}
-            <div className="px-2 py-1 border-t-2 border-black font-bold">
-              <div className="flex justify-between">
-                <span>Total</span>
-                <span>{rightTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {/* Closing Stock */}
+              <div className="px-2 py-1 mt-1">
+                <div className="flex justify-between font-bold text-xs">
+                  <span>Closing Stock</span>
+                  <span className="font-mono">{totalClosingStock.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
               </div>
+              {closingStock.map((item, idx) => (
+                <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
+                  <span className="text-gray-700">{item.ledgerName}</span>
+                  <span className="font-mono">{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+
+              {/* Subtotal */}
+              <div className="px-2 py-1 border-t-2 border-b border-black">
+                <div className="flex justify-end font-bold text-xs">
+                  <span className="font-mono">{rightSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              {/* Gross Profit b/f */}
+              {grossProfit > 0 && (
+                <div className="px-2 py-1 font-bold italic text-xs">
+                  <div className="flex justify-between">
+                    <span>Gross Profit b/f</span>
+                    <span className="font-mono">{grossProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Indirect Incomes */}
+              <div className="px-2 py-1">
+                <div className="flex justify-between font-bold text-xs">
+                  <span>Indirect Incomes</span>
+                  <span className="font-mono">{totalIndirectIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+              {indirectIncomes.map((item, idx) => (
+                <div key={idx} className="px-4 py-0.5 flex justify-between text-xs italic">
+                  <span className="text-gray-700">{item.ledgerName}</span>
+                  <span className="font-mono">{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
+        {/* Totals */}
+        <div className="grid grid-cols-2 border-b-2 border-black bg-gray-100">
+          <div className="p-3 border-r-2 border-black">
+            <div className="flex justify-between font-bold text-sm">
+              <span>TOTAL</span>
+              <span className="font-mono">₹ {leftTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+          <div className="p-3">
+            <div className="flex justify-between font-bold text-sm">
+              <span>TOTAL</span>
+              <span className="font-mono">₹ {rightTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Amount in Words */}
+        <div className="p-3 border-b-2 border-black">
+          <p className="text-xs">
+            <strong>Total in Words:</strong> {numberToWords(Math.round(Math.max(leftTotal, rightTotal)))}
+          </p>
+        </div>
+
         {/* Footer */}
-        <div className="p-3 border-t border-black">
-          <div className="grid grid-cols-2 gap-8 mt-6">
+        <div className="p-4">
+          <div className="grid grid-cols-2 gap-8 mt-8">
             <div>
               <p className="text-xs">Prepared By</p>
-              <div className="border-t border-black mt-6 pt-1">
+              <div className="border-t border-black mt-8 pt-1">
                 <p className="text-xs">Accountant</p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-xs">For {company.name}</p>
-              <div className="border-t border-black mt-6 pt-1 inline-block min-w-[150px]">
+              <div className="border-t border-black mt-8 pt-1 inline-block min-w-[150px]">
                 <p className="text-xs">Authorized Signatory</p>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="text-center text-xs text-gray-600 mt-4">
+        This is a computer-generated report and does not require a signature
       </div>
     </div>
   );
