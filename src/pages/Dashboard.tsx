@@ -203,21 +203,22 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6" key={companyId}>
-      <div className="flex items-center justify-between">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6" key={companyId}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome to your ERP dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Welcome to your ERP dashboard</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => fetchDashboardStats()}
+            className="w-full sm:w-auto"
           >
             Refresh Data
           </Button>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
             {new Date().toLocaleDateString('en-IN', { 
               year: 'numeric', 
               month: 'long', 
@@ -229,23 +230,23 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="flex items-center justify-center h-48 sm:h-64">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin" />
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-lg sm:text-2xl font-bold break-all">{stat.value}</div>
               {stat.change && (
-                <p className={`text-xs ${stat.color} mt-1`}>
+                <p className={`text-[10px] sm:text-xs ${stat.color} mt-1`}>
                   {stat.change} from last month
                 </p>
               )}
@@ -257,16 +258,16 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-4">
             {quickActions.map((action) => (
               <Button
                 key={action.path}
                 variant="outline"
-                className="h-auto py-4"
+                className="h-auto py-3 sm:py-4 text-xs sm:text-sm"
                 onClick={() => navigate(action.path)}
               >
                 {action.label}
@@ -278,39 +279,39 @@ const Dashboard = () => {
 
       {/* Getting Started */}
       <Card className="bg-muted/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Package className="h-4 w-4 sm:h-5 sm:w-5" />
             Getting Started
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+        <CardContent className="space-y-3 p-3 sm:p-6 pt-0">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Set up your company</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm font-medium">Set up your company</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 Configure your company details and ledgers to get started
               </p>
               <Button
                 variant="link"
-                className="h-auto p-0 mt-2"
+                className="h-auto p-0 mt-2 text-xs sm:text-sm"
                 onClick={() => navigate('/companies')}
               >
                 Go to Companies →
               </Button>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+          <div className="flex items-start gap-2 sm:gap-3">
+            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Create ledgers</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm font-medium">Create ledgers</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 Add parties, bank accounts, and expense heads
               </p>
               <Button
                 variant="link"
-                className="h-auto p-0 mt-2"
+                className="h-auto p-0 mt-2 text-xs sm:text-sm"
                 onClick={() => navigate('/ledgers')}
               >
                 Go to Ledgers →
