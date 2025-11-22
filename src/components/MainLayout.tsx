@@ -57,30 +57,30 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4">
+          <header className="h-14 border-b border-border bg-card flex items-center justify-between px-2 sm:px-4">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <h1 className="text-lg font-semibold text-foreground">ERP System</h1>
+              <h1 className="text-base sm:text-lg font-semibold text-foreground hidden sm:block">ERP System</h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 sm:gap-3">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative"
+                className="relative h-8 w-8 sm:h-10 sm:w-10"
                 onClick={() => navigate('/notifications')}
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {notificationCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs">
                     {notificationCount}
                   </Badge>
                 )}
               </Button>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs sm:text-sm text-muted-foreground hidden md:block max-w-[150px] truncate">
                 {user?.email}
               </div>
-              <Button variant="ghost" size="icon" onClick={signOut}>
-                <LogOut className="h-5 w-5" />
+              <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 sm:h-10 sm:w-10">
+                <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </header>

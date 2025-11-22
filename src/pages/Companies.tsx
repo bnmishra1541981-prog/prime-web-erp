@@ -207,20 +207,20 @@ const Companies = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-3 sm:p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Companies</h1>
-          <p className="text-sm text-muted-foreground">Manage your company information</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Companies</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage your company information</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={resetForm} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Add Company
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCompany ? 'Edit Company' : 'Add New Company'}</DialogTitle>
               <DialogDescription>
@@ -228,7 +228,7 @@ const Companies = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="gstin">GSTIN *</Label>
                   <div className="flex gap-2">
@@ -444,20 +444,21 @@ const Companies = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Company List</CardTitle>
-          <CardDescription>All registered companies in your account</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Company List</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">All registered companies in your account</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="text-center py-8 text-sm">Loading...</div>
           ) : companies.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No companies found. Add your first company to get started.</p>
+            <div className="text-center py-8 text-muted-foreground px-4">
+              <Building2 className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-xs sm:text-sm">No companies found. Add your first company to get started.</p>
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -497,7 +498,8 @@ const Companies = () => {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
