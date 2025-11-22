@@ -35,8 +35,51 @@ export const BalanceSheetPrint = forwardRef<HTMLDivElement, BalanceSheetPrintPro
     return grouped;
   };
 
+  // Define the exact order for liability groups (matching Tally format)
+  const liabilityGroupOrder = [
+    'Capital Account',
+    'Loans (Liability)',
+    'Secured Loans',
+    'Unsecured Loans',
+    'Current Liabilities',
+    'Sundry Creditors',
+    'Duties & Taxes',
+    'Bank OD A/c',
+    'Provisions',
+    'Reserves & Surplus',
+    'Suspense A/c',
+  ];
+
+  // Define the exact order for asset groups (matching Tally format)
+  const assetGroupOrder = [
+    'Fixed Assets',
+    'Investments',
+    'Current Assets',
+    'Sundry Debtors',
+    'Cash-in-Hand',
+    'Bank Accounts',
+    'Stock-in-Hand',
+    'Deposits (Asset)',
+    'Loans & Advances (Asset)',
+  ];
+
+  const sortGroupsByOrder = (groups: Map<string, BalanceSheetData[]>, order: string[]): [string, BalanceSheetData[]][] => {
+    const entries = Array.from(groups.entries());
+    return entries.sort(([a], [b]) => {
+      const indexA = order.indexOf(a);
+      const indexB = order.indexOf(b);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  };
+
   const liabilityGroups = groupByCategory(liabilities);
   const assetGroups = groupByCategory(assets);
+
+  const sortedLiabilityGroups = sortGroupsByOrder(liabilityGroups, liabilityGroupOrder);
+  const sortedAssetGroups = sortGroupsByOrder(assetGroups, assetGroupOrder);
 
   const numberToWords = (num: number): string => {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
@@ -98,36 +141,58 @@ export const BalanceSheetPrint = forwardRef<HTMLDivElement, BalanceSheetPrintPro
             <div className="p-3">
               <table className="w-full text-xs">
                 <tbody>
-                  {Array.from(liabilityGroups.entries()).map(([groupName, items], groupIndex) => (
-                    <tr key={groupIndex}>
-                      <td colSpan={2} className="py-1">
-                        <div className="font-semibold mb-1">{groupName}</div>
-                        {items.map((item, itemIndex) => (
-                          <div key={itemIndex} className="flex justify-between pl-4 py-0.5">
-                            <span className="text-gray-700">{item.ledgerName}</span>
-                            <span className="font-mono">{item.amount.toFixed(2)}</span>
+                  {sortedLiabilityGroups.map(([groupName, items], groupIndex) => {
+                    const isCapitalAccount = groupName === 'Capital Account';
+                    return (
+                      <tr key={groupIndex}>
+                        <td colSpan={2} className="py-1">
+                          <div className={`font-semibold mb-1 px-2 py-1 ${isCapitalAccount ? 'bg-yellow-100' : ''}`}>{groupName}</div>
+                          {items.map((item, itemIndex) => (
+                            <div key={itemIndex} className="flex justify-between pl-4 py-0.5">
+                              <span className="text-gray-700 italic">{item.ledgerName}</span>
+                              <span className="font-mono">{item.amount.toFixed(2)}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between pl-2 py-0.5 font-semibold border-b border-gray-300 mt-1">
+                            <span></span>
+                            <span className="font-mono">
+                              {items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}
+                            </span>
                           </div>
-                        ))}
-                        <div className="flex justify-between pl-4 py-0.5 font-semibold border-t border-gray-300 mt-1">
-                          <span>Total {groupName}</span>
-                          <span className="font-mono">
-                            {items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   
-                  {difference < 0 && (
-                    <tr>
-                      <td colSpan={2} className="py-1">
-                        <div className="font-bold text-green-700 flex justify-between">
-                          <span>Profit for the Year</span>
-                          <span className="font-mono">{Math.abs(difference).toFixed(2)}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                  <tr>
+                    <td colSpan={2} className="py-1">
+                      <div className="font-semibold mb-1 px-2 py-1">Profit & Loss A/c</div>
+                      {difference < 0 && (
+                        <>
+                          <div className="flex justify-between pl-4 py-0.5">
+                            <span className="text-gray-700 italic">Current Period (Profit)</span>
+                            <span className="font-mono">{Math.abs(difference).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between pl-2 py-0.5 font-semibold border-b border-gray-300 mt-1">
+                            <span></span>
+                            <span className="font-mono">{Math.abs(difference).toFixed(2)}</span>
+                          </div>
+                        </>
+                      )}
+                      {difference > 0 && (
+                        <>
+                          <div className="flex justify-between pl-4 py-0.5">
+                            <span className="text-gray-700 italic">Current Period (Loss)</span>
+                            <span className="font-mono">({difference.toFixed(2)})</span>
+                          </div>
+                          <div className="flex justify-between pl-2 py-0.5 font-semibold border-b border-gray-300 mt-1">
+                            <span></span>
+                            <span className="font-mono">({difference.toFixed(2)})</span>
+                          </div>
+                        </>
+                      )}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -141,18 +206,18 @@ export const BalanceSheetPrint = forwardRef<HTMLDivElement, BalanceSheetPrintPro
             <div className="p-3">
               <table className="w-full text-xs">
                 <tbody>
-                  {Array.from(assetGroups.entries()).map(([groupName, items], groupIndex) => (
+                  {sortedAssetGroups.map(([groupName, items], groupIndex) => (
                     <tr key={groupIndex}>
                       <td colSpan={2} className="py-1">
                         <div className="font-semibold mb-1">{groupName}</div>
                         {items.map((item, itemIndex) => (
                           <div key={itemIndex} className="flex justify-between pl-4 py-0.5">
-                            <span className="text-gray-700">{item.ledgerName}</span>
+                            <span className="text-gray-700 italic">{item.ledgerName}</span>
                             <span className="font-mono">{item.amount.toFixed(2)}</span>
                           </div>
                         ))}
-                        <div className="flex justify-between pl-4 py-0.5 font-semibold border-t border-gray-300 mt-1">
-                          <span>Total {groupName}</span>
+                        <div className="flex justify-between pl-2 py-0.5 font-semibold border-b border-gray-300 mt-1">
+                          <span></span>
                           <span className="font-mono">
                             {items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}
                           </span>
@@ -160,17 +225,6 @@ export const BalanceSheetPrint = forwardRef<HTMLDivElement, BalanceSheetPrintPro
                       </td>
                     </tr>
                   ))}
-                  
-                  {difference > 0 && (
-                    <tr>
-                      <td colSpan={2} className="py-1">
-                        <div className="font-bold text-red-700 flex justify-between">
-                          <span>Loss for the Year</span>
-                          <span className="font-mono">{difference.toFixed(2)}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>

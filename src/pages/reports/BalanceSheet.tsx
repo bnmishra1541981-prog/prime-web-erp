@@ -174,6 +174,46 @@ export default function BalanceSheet() {
     return mapping[ledgerType] || ledgerType;
   };
 
+  // Define the exact order for liability groups (matching Tally format)
+  const liabilityGroupOrder = [
+    'Capital Account',
+    'Loans (Liability)',
+    'Secured Loans',
+    'Unsecured Loans',
+    'Current Liabilities',
+    'Sundry Creditors',
+    'Duties & Taxes',
+    'Bank OD A/c',
+    'Provisions',
+    'Reserves & Surplus',
+    'Suspense A/c',
+  ];
+
+  // Define the exact order for asset groups (matching Tally format)
+  const assetGroupOrder = [
+    'Fixed Assets',
+    'Investments',
+    'Current Assets',
+    'Sundry Debtors',
+    'Cash-in-Hand',
+    'Bank Accounts',
+    'Stock-in-Hand',
+    'Deposits (Asset)',
+    'Loans & Advances (Asset)',
+  ];
+
+  const sortGroupsByOrder = (groups: Record<string, LedgerEntry[]>, order: string[]): [string, LedgerEntry[]][] => {
+    const entries = Object.entries(groups);
+    return entries.sort(([a], [b]) => {
+      const indexA = order.indexOf(a);
+      const indexB = order.indexOf(b);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  };
+
   const groupByCategory = (data: LedgerEntry[]): Record<string, LedgerEntry[]> => {
     const grouped: Record<string, LedgerEntry[]> = {};
     data.forEach(item => {
@@ -221,6 +261,9 @@ export default function BalanceSheet() {
 
   const liabilityGroups = groupByCategory(liabilitiesData);
   const assetGroups = groupByCategory(assetsData);
+
+  const sortedLiabilityGroups = sortGroupsByOrder(liabilityGroups, liabilityGroupOrder);
+  const sortedAssetGroups = sortGroupsByOrder(assetGroups, assetGroupOrder);
 
   const selectedCompanyData = companies.find(c => c.id === selectedCompany);
 
@@ -308,15 +351,16 @@ export default function BalanceSheet() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(liabilityGroups).map(([groupName, items]) => {
+                  {sortedLiabilityGroups.map(([groupName, items]) => {
                     const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
                     const isExpanded = expandedGroups.has(groupName);
+                    const isCapitalAccount = groupName === 'Capital Account';
                     
                     return (
                       <>
                         <TableRow 
                           key={groupName} 
-                          className="font-semibold cursor-pointer hover:bg-muted/50"
+                          className={`font-semibold cursor-pointer hover:bg-muted/50 ${isCapitalAccount ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}
                           onClick={() => toggleGroup(groupName)}
                         >
                           <TableCell className="flex items-center gap-2">
@@ -331,18 +375,31 @@ export default function BalanceSheet() {
                             className="bg-muted/20 cursor-pointer hover:bg-muted/40"
                             onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
                           >
-                            <TableCell className="pl-12">{item.ledgerName}</TableCell>
+                            <TableCell className="pl-12 italic">{item.ledgerName}</TableCell>
                             <TableCell className="text-right">{formatCurrency(item.amount, companyCurrency)}</TableCell>
                           </TableRow>
                         ))}
                       </>
                     );
                   })}
+                  <TableRow className="font-bold bg-primary/10">
+                    <TableCell colSpan={2} className="text-left">Profit & Loss A/c</TableCell>
+                  </TableRow>
                   {difference < 0 && (
-                    <TableRow className="font-bold bg-primary/10">
-                      <TableCell>Net Profit</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Math.abs(difference), companyCurrency)}</TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow className="bg-muted/20">
+                        <TableCell className="pl-12 italic">Current Period (Profit)</TableCell>
+                        <TableCell className="text-right">{formatCurrency(Math.abs(difference), companyCurrency)}</TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                  {difference > 0 && (
+                    <>
+                      <TableRow className="bg-muted/20">
+                        <TableCell className="pl-12 italic">Current Period (Loss)</TableCell>
+                        <TableCell className="text-right">({formatCurrency(difference, companyCurrency)})</TableCell>
+                      </TableRow>
+                    </>
                   )}
                 </TableBody>
                 <TableFooter>
@@ -366,7 +423,7 @@ export default function BalanceSheet() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(assetGroups).map(([groupName, items]) => {
+                  {sortedAssetGroups.map(([groupName, items]) => {
                     const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
                     const isExpanded = expandedGroups.has(groupName);
                     
@@ -389,19 +446,13 @@ export default function BalanceSheet() {
                             className="bg-muted/20 cursor-pointer hover:bg-muted/40"
                             onClick={() => item.ledgerId && handleLedgerClick(item.ledgerId, item.ledgerName)}
                           >
-                            <TableCell className="pl-12">{item.ledgerName}</TableCell>
+                            <TableCell className="pl-12 italic">{item.ledgerName}</TableCell>
                             <TableCell className="text-right">{formatCurrency(item.amount, companyCurrency)}</TableCell>
                           </TableRow>
                         ))}
                       </>
                     );
                   })}
-                  {difference > 0 && (
-                    <TableRow className="font-bold bg-destructive/10">
-                      <TableCell>Net Loss</TableCell>
-                      <TableCell className="text-right">{formatCurrency(difference, companyCurrency)}</TableCell>
-                    </TableRow>
-                  )}
                 </TableBody>
                 <TableFooter>
                   <TableRow>
