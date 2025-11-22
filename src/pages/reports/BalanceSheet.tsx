@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, Download, Plus, Minus, FileDown } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
@@ -12,6 +11,7 @@ import html2canvas from 'html2canvas';
 import { BalanceSheetPrint } from '@/components/reports/BalanceSheetPrint';
 import { LedgerTransactionDialog } from '@/components/reports/LedgerTransactionDialog';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { GstinCompanySelect } from '@/components/GstinCompanySelect';
 
 interface LedgerEntry {
   ledgerName: string;
@@ -229,26 +229,16 @@ export default function BalanceSheet() {
       <h1 className="text-3xl font-bold mb-6">Balance Sheet</h1>
 
       <Card className="p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Company</label>
-            <Select value={selectedCompany} onValueChange={(value) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <GstinCompanySelect
+            value={selectedCompany}
+            onValueChange={(value) => {
               setSelectedCompany(value);
               const company = companies.find(c => c.id === value);
               if (company) setCompanyCurrency(company.currency || 'INR');
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Company" />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            }}
+            label="Company"
+          />
 
           <div>
             <label className="block text-sm font-medium mb-2">As on Date</label>

@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Plus, Edit, Trash2 } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
+import { useGstinLookup } from '@/hooks/useGstinLookup';
 
 interface Company {
   id: string;
@@ -29,6 +30,7 @@ const Companies = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const { fetchGstinDetails, loading: gstinLoading } = useGstinLookup();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -37,6 +39,23 @@ const Companies = () => {
     gstin: '',
     financial_year_start: '2024-04-01',
     currency: 'INR',
+    legal_name: '',
+    trade_name: '',
+    registration_date: '',
+    business_nature: '',
+    taxpayer_type: '',
+    constitution_of_business: '',
+    state_jurisdiction: '',
+    gstn_status: '',
+    state: '',
+    building_name: '',
+    building_no: '',
+    floor_no: '',
+    street: '',
+    locality: '',
+    city: '',
+    district: '',
+    pincode: '',
   });
 
   useEffect(() => {
@@ -105,6 +124,27 @@ const Companies = () => {
     }
   };
 
+  const handleGstinLookup = async () => {
+    if (!formData.gstin || formData.gstin.length !== 15) {
+      toast.error('Please enter a valid 15-digit GSTIN');
+      return;
+    }
+
+    const gstinData = await fetchGstinDetails(formData.gstin);
+    
+    if (gstinData) {
+      setFormData(prev => ({
+        ...prev,
+        ...gstinData,
+        // Preserve user-entered values for fields not from GSTIN
+        email: prev.email,
+        phone: prev.phone,
+        financial_year_start: prev.financial_year_start,
+        currency: prev.currency,
+      }));
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -114,6 +154,23 @@ const Companies = () => {
       gstin: '',
       financial_year_start: '2024-04-01',
       currency: 'INR',
+      legal_name: '',
+      trade_name: '',
+      registration_date: '',
+      business_nature: '',
+      taxpayer_type: '',
+      constitution_of_business: '',
+      state_jurisdiction: '',
+      gstn_status: '',
+      state: '',
+      building_name: '',
+      building_no: '',
+      floor_no: '',
+      street: '',
+      locality: '',
+      city: '',
+      district: '',
+      pincode: '',
     });
     setEditingCompany(null);
   };
@@ -128,6 +185,23 @@ const Companies = () => {
       gstin: company.gstin || '',
       financial_year_start: company.financial_year_start || '2024-04-01',
       currency: company.currency || 'INR',
+      legal_name: '',
+      trade_name: '',
+      registration_date: '',
+      business_nature: '',
+      taxpayer_type: '',
+      constitution_of_business: '',
+      state_jurisdiction: '',
+      gstn_status: '',
+      state: '',
+      building_name: '',
+      building_no: '',
+      floor_no: '',
+      street: '',
+      locality: '',
+      city: '',
+      district: '',
+      pincode: '',
     });
     setIsDialogOpen(true);
   };
@@ -155,22 +229,87 @@ const Companies = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="gstin">GSTIN *</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="gstin"
+                      value={formData.gstin}
+                      onChange={(e) => setFormData({ ...formData, gstin: e.target.value.toUpperCase() })}
+                      placeholder="22AAAAA0000A1Z5"
+                      maxLength={15}
+                      required
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleGstinLookup}
+                      disabled={gstinLoading || !formData.gstin || formData.gstin.length !== 15}
+                    >
+                      {gstinLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 mr-2" />
+                          Fetch
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Company Name *</Label>
+                  <Label htmlFor="legal_name">Legal Name</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
+                    id="legal_name"
+                    value={formData.legal_name}
+                    onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
+                    placeholder="Auto-filled from GSTIN"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gstin">GSTIN</Label>
+                  <Label htmlFor="trade_name">Trade Name *</Label>
                   <Input
-                    id="gstin"
-                    value={formData.gstin}
-                    onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
-                    placeholder="22AAAAA0000A1Z5"
+                    id="trade_name"
+                    value={formData.trade_name || formData.name}
+                    onChange={(e) => setFormData({ ...formData, trade_name: e.target.value, name: e.target.value })}
+                    required
+                    placeholder="Auto-filled from GSTIN"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="taxpayer_type">Taxpayer Type</Label>
+                  <Input
+                    id="taxpayer_type"
+                    value={formData.taxpayer_type}
+                    onChange={(e) => setFormData({ ...formData, taxpayer_type: e.target.value })}
+                    placeholder="Auto-filled from GSTIN"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="constitution_of_business">Constitution</Label>
+                  <Input
+                    id="constitution_of_business"
+                    value={formData.constitution_of_business}
+                    onChange={(e) => setFormData({ ...formData, constitution_of_business: e.target.value })}
+                    placeholder="Auto-filled from GSTIN"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gstn_status">GSTN Status</Label>
+                  <Input
+                    id="gstn_status"
+                    value={formData.gstn_status}
+                    onChange={(e) => setFormData({ ...formData, gstn_status: e.target.value })}
+                    placeholder="Auto-filled from GSTIN"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registration_date">Registration Date</Label>
+                  <Input
+                    id="registration_date"
+                    type="date"
+                    value={formData.registration_date}
+                    onChange={(e) => setFormData({ ...formData, registration_date: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -191,11 +330,76 @@ const Companies = () => {
                   />
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">Full Address</Label>
                   <Input
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Auto-filled from GSTIN"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="building_no">Building No</Label>
+                  <Input
+                    id="building_no"
+                    value={formData.building_no}
+                    onChange={(e) => setFormData({ ...formData, building_no: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="building_name">Building Name</Label>
+                  <Input
+                    id="building_name"
+                    value={formData.building_name}
+                    onChange={(e) => setFormData({ ...formData, building_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="street">Street</Label>
+                  <Input
+                    id="street"
+                    value={formData.street}
+                    onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="locality">Locality</Label>
+                  <Input
+                    id="locality"
+                    value={formData.locality}
+                    onChange={(e) => setFormData({ ...formData, locality: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="district">District</Label>
+                  <Input
+                    id="district"
+                    value={formData.district}
+                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pincode">Pincode</Label>
+                  <Input
+                    id="pincode"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
