@@ -138,19 +138,37 @@ export type Database = {
           bank_account_number: string | null
           bank_ifsc: string | null
           bank_name: string | null
+          building_name: string | null
+          building_no: string | null
+          business_nature: string | null
+          central_jurisdiction: string | null
+          city: string | null
+          constitution_of_business: string | null
           created_at: string
           currency: string | null
+          district: string | null
           email: string | null
           enable_gst: boolean | null
           financial_year_start: string | null
+          floor_no: string | null
           gst_registration_type: string | null
           gstin: string | null
           gstin_state_code: string | null
+          gstn_status: string | null
           id: string
+          last_updated_date: string | null
+          legal_name: string | null
+          locality: string | null
           name: string
           pan: string | null
           phone: string | null
+          pincode: string | null
+          registration_date: string | null
           state: string | null
+          state_jurisdiction: string | null
+          street: string | null
+          taxpayer_type: string | null
+          trade_name: string | null
           updated_at: string
           user_id: string
         }
@@ -159,19 +177,37 @@ export type Database = {
           bank_account_number?: string | null
           bank_ifsc?: string | null
           bank_name?: string | null
+          building_name?: string | null
+          building_no?: string | null
+          business_nature?: string | null
+          central_jurisdiction?: string | null
+          city?: string | null
+          constitution_of_business?: string | null
           created_at?: string
           currency?: string | null
+          district?: string | null
           email?: string | null
           enable_gst?: boolean | null
           financial_year_start?: string | null
+          floor_no?: string | null
           gst_registration_type?: string | null
           gstin?: string | null
           gstin_state_code?: string | null
+          gstn_status?: string | null
           id?: string
+          last_updated_date?: string | null
+          legal_name?: string | null
+          locality?: string | null
           name: string
           pan?: string | null
           phone?: string | null
+          pincode?: string | null
+          registration_date?: string | null
           state?: string | null
+          state_jurisdiction?: string | null
+          street?: string | null
+          taxpayer_type?: string | null
+          trade_name?: string | null
           updated_at?: string
           user_id: string
         }
@@ -180,19 +216,37 @@ export type Database = {
           bank_account_number?: string | null
           bank_ifsc?: string | null
           bank_name?: string | null
+          building_name?: string | null
+          building_no?: string | null
+          business_nature?: string | null
+          central_jurisdiction?: string | null
+          city?: string | null
+          constitution_of_business?: string | null
           created_at?: string
           currency?: string | null
+          district?: string | null
           email?: string | null
           enable_gst?: boolean | null
           financial_year_start?: string | null
+          floor_no?: string | null
           gst_registration_type?: string | null
           gstin?: string | null
           gstin_state_code?: string | null
+          gstn_status?: string | null
           id?: string
+          last_updated_date?: string | null
+          legal_name?: string | null
+          locality?: string | null
           name?: string
           pan?: string | null
           phone?: string | null
+          pincode?: string | null
+          registration_date?: string | null
           state?: string | null
+          state_jurisdiction?: string | null
+          street?: string | null
+          taxpayer_type?: string | null
+          trade_name?: string | null
           updated_at?: string
           user_id?: string
         }

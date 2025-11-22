@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GstinCompanySelect } from '@/components/GstinCompanySelect';
 
 export default function CostCenters() {
   const [companies, setCompanies] = useState<any[]>([]);
@@ -102,21 +102,20 @@ export default function CostCenters() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Cost Centers</h1>
-        <div className="flex gap-4">
-          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select Company" />
-            </SelectTrigger>
-            <SelectContent>
-              {companies.map((company) => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Cost Centers</h1>
+        <p className="text-sm text-muted-foreground">Manage cost centers for your companies</p>
+      </div>
+
+      <div className="flex gap-4 mb-6">
+        <div className="flex-1">
+          <GstinCompanySelect
+            value={selectedCompany}
+            onValueChange={setSelectedCompany}
+            label="Select Company"
+          />
+        </div>
+        <div className="flex items-end">
           <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
             <DialogTrigger asChild>
               <Button>
