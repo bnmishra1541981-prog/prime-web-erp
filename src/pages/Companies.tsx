@@ -82,11 +82,44 @@ const Companies = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user?.id) {
+      toast.error('You must be logged in to create a company');
+      return;
+    }
+
     try {
+      // Prepare data with only the fields that exist in the database
+      const companyData = {
+        name: formData.name || formData.trade_name,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        address: formData.address || null,
+        gstin: formData.gstin || null,
+        financial_year_start: formData.financial_year_start || null,
+        currency: formData.currency || 'INR',
+        legal_name: formData.legal_name || null,
+        trade_name: formData.trade_name || null,
+        registration_date: formData.registration_date || null,
+        business_nature: formData.business_nature || null,
+        taxpayer_type: formData.taxpayer_type || null,
+        constitution_of_business: formData.constitution_of_business || null,
+        state_jurisdiction: formData.state_jurisdiction || null,
+        gstn_status: formData.gstn_status || null,
+        state: formData.state || null,
+        building_name: formData.building_name || null,
+        building_no: formData.building_no || null,
+        floor_no: formData.floor_no || null,
+        street: formData.street || null,
+        locality: formData.locality || null,
+        city: formData.city || null,
+        district: formData.district || null,
+        pincode: formData.pincode || null,
+      };
+
       if (editingCompany) {
         const { error } = await supabase
           .from('companies')
-          .update(formData)
+          .update(companyData)
           .eq('id', editingCompany.id);
 
         if (error) throw error;
@@ -94,7 +127,7 @@ const Companies = () => {
       } else {
         const { error } = await supabase
           .from('companies')
-          .insert([{ ...formData, user_id: user?.id }]);
+          .insert([{ ...companyData, user_id: user.id }]);
 
         if (error) throw error;
         toast.success('Company created successfully');
@@ -104,7 +137,8 @@ const Companies = () => {
       resetForm();
       fetchCompanies();
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Company save error:', error);
+      toast.error(error.message || 'Failed to save company');
     }
   };
 
