@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Building2, Plus, Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
 import { useGstinLookup } from '@/hooks/useGstinLookup';
+import { INDIAN_STATES, getDistrictsByState, getCitiesByDistrict } from '@/lib/indianLocations';
 
 interface Company {
   id: string;
@@ -175,33 +176,41 @@ const Companies = () => {
     setEditingCompany(null);
   };
 
-  const openEditDialog = (company: Company) => {
+  const openEditDialog = async (company: Company) => {
     setEditingCompany(company);
+    
+    // Fetch complete company data including GSTIN fields
+    const { data: fullCompanyData } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', company.id)
+      .single();
+    
     setFormData({
-      name: company.name,
-      email: company.email || '',
-      phone: company.phone || '',
-      address: company.address || '',
-      gstin: company.gstin || '',
-      financial_year_start: company.financial_year_start || '2024-04-01',
-      currency: company.currency || 'INR',
-      legal_name: '',
-      trade_name: '',
-      registration_date: '',
-      business_nature: '',
-      taxpayer_type: '',
-      constitution_of_business: '',
-      state_jurisdiction: '',
-      gstn_status: '',
-      state: '',
-      building_name: '',
-      building_no: '',
-      floor_no: '',
-      street: '',
-      locality: '',
-      city: '',
-      district: '',
-      pincode: '',
+      name: fullCompanyData?.name || '',
+      email: fullCompanyData?.email || '',
+      phone: fullCompanyData?.phone || '',
+      address: fullCompanyData?.address || '',
+      gstin: fullCompanyData?.gstin || '',
+      financial_year_start: fullCompanyData?.financial_year_start || '2024-04-01',
+      currency: fullCompanyData?.currency || 'INR',
+      legal_name: fullCompanyData?.legal_name || '',
+      trade_name: fullCompanyData?.trade_name || '',
+      registration_date: fullCompanyData?.registration_date || '',
+      business_nature: fullCompanyData?.business_nature || '',
+      taxpayer_type: fullCompanyData?.taxpayer_type || '',
+      constitution_of_business: fullCompanyData?.constitution_of_business || '',
+      state_jurisdiction: fullCompanyData?.state_jurisdiction || '',
+      gstn_status: fullCompanyData?.gstn_status || '',
+      state: fullCompanyData?.state || '',
+      building_name: fullCompanyData?.building_name || '',
+      building_no: fullCompanyData?.building_no || '',
+      floor_no: fullCompanyData?.floor_no || '',
+      street: fullCompanyData?.street || '',
+      locality: fullCompanyData?.locality || '',
+      city: fullCompanyData?.city || '',
+      district: fullCompanyData?.district || '',
+      pincode: fullCompanyData?.pincode || '',
     });
     setIsDialogOpen(true);
   };
@@ -371,28 +380,69 @@ const Companies = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="district">District</Label>
-                  <Input
-                    id="district"
-                    value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
+                  <Label htmlFor="state">State *</Label>
+                  <Select
                     value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  />
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      state: value, 
+                      district: '', 
+                      city: '' 
+                    })}
+                  >
+                    <SelectTrigger id="state">
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {INDIAN_STATES.map((state) => (
+                        <SelectItem key={state.name} value={state.name}>
+                          {state.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="district">District *</Label>
+                  <Select
+                    value={formData.district}
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      district: value, 
+                      city: '' 
+                    })}
+                    disabled={!formData.state}
+                  >
+                    <SelectTrigger id="district">
+                      <SelectValue placeholder={formData.state ? "Select district" : "Select state first"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {getDistrictsByState(formData.state).map((district) => (
+                        <SelectItem key={district.name} value={district.name}>
+                          {district.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">City *</Label>
+                  <Select
+                    value={formData.city}
+                    onValueChange={(value) => setFormData({ ...formData, city: value })}
+                    disabled={!formData.district}
+                  >
+                    <SelectTrigger id="city">
+                      <SelectValue placeholder={formData.district ? "Select city" : "Select district first"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {getCitiesByDistrict(formData.state, formData.district).map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pincode">Pincode</Label>
