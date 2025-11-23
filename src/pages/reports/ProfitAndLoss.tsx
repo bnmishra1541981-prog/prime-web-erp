@@ -75,6 +75,24 @@ export default function ProfitAndLoss() {
 
     setLoading(true);
     try {
+      // Fetch income companies
+      const { data: incomeCompanies, error: incomeCompError } = await supabase
+        .from('companies')
+        .select('*')
+        .neq('id', selectedCompany)
+        .in('ledger_type', ['sales_accounts', 'direct_incomes', 'indirect_incomes']);
+
+      if (incomeCompError) throw incomeCompError;
+
+      // Fetch expense companies
+      const { data: expenseCompanies, error: expenseCompError } = await supabase
+        .from('companies')
+        .select('*')
+        .neq('id', selectedCompany)
+        .in('ledger_type', ['purchase_accounts', 'direct_expenses', 'indirect_expenses']);
+
+      if (expenseCompError) throw expenseCompError;
+
       // Fetch stock items for opening and closing stock
       const { data: stockItems, error: stockError } = await supabase
         .from('stock_items')
@@ -132,27 +150,47 @@ export default function ProfitAndLoss() {
 
       if (entriesError) throw entriesError;
 
-      const income = incomeLedgers?.map((ledger) => {
-        const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
-        const amount = ledgerEntries.reduce((sum, e) => sum + Number(e.credit_amount || 0) - Number(e.debit_amount || 0), 0);
-        return {
-          ledgerName: ledger.name,
-          groupName: formatGroupName(ledger.ledger_type),
-          amount,
-          ledgerId: ledger.id,
-        };
-      }) || [];
+      const incomeCompanyEntries = incomeCompanies?.map((company) => ({
+        ledgerName: company.name,
+        groupName: formatGroupName(company.ledger_type),
+        amount: 0,
+        ledgerId: undefined,
+      })) || [];
 
-      const expenses = expenseLedgers?.map((ledger) => {
-        const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
-        const amount = ledgerEntries.reduce((sum, e) => sum + Number(e.debit_amount || 0) - Number(e.credit_amount || 0), 0);
-        return {
-          ledgerName: ledger.name,
-          groupName: formatGroupName(ledger.ledger_type),
-          amount,
-          ledgerId: ledger.id,
-        };
-      }) || [];
+      const income = [
+        ...incomeCompanyEntries,
+        ...(incomeLedgers?.map((ledger) => {
+          const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
+          const amount = ledgerEntries.reduce((sum, e) => sum + Number(e.credit_amount || 0) - Number(e.debit_amount || 0), 0);
+          return {
+            ledgerName: ledger.name,
+            groupName: formatGroupName(ledger.ledger_type),
+            amount,
+            ledgerId: ledger.id,
+          };
+        }) || [])
+      ];
+
+      const expenseCompanyEntries = expenseCompanies?.map((company) => ({
+        ledgerName: company.name,
+        groupName: formatGroupName(company.ledger_type),
+        amount: 0,
+        ledgerId: undefined,
+      })) || [];
+
+      const expenses = [
+        ...expenseCompanyEntries,
+        ...(expenseLedgers?.map((ledger) => {
+          const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
+          const amount = ledgerEntries.reduce((sum, e) => sum + Number(e.debit_amount || 0) - Number(e.credit_amount || 0), 0);
+          return {
+            ledgerName: ledger.name,
+            groupName: formatGroupName(ledger.ledger_type),
+            amount,
+            ledgerId: ledger.id,
+          };
+        }) || [])
+      ];
 
       setIncomeData(income);
       setExpenseData(expenses);

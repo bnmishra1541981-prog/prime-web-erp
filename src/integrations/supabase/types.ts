@@ -157,6 +157,7 @@ export type Database = {
           gstn_status: string | null
           id: string
           last_updated_date: string | null
+          ledger_type: Database["public"]["Enums"]["ledger_type"] | null
           legal_name: string | null
           locality: string | null
           name: string
@@ -196,6 +197,7 @@ export type Database = {
           gstn_status?: string | null
           id?: string
           last_updated_date?: string | null
+          ledger_type?: Database["public"]["Enums"]["ledger_type"] | null
           legal_name?: string | null
           locality?: string | null
           name: string
@@ -235,6 +237,7 @@ export type Database = {
           gstn_status?: string | null
           id?: string
           last_updated_date?: string | null
+          ledger_type?: Database["public"]["Enums"]["ledger_type"] | null
           legal_name?: string | null
           locality?: string | null
           name?: string
