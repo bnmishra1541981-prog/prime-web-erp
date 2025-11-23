@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useGstinLookup } from '@/hooks/useGstinLookup';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
 import { INDIAN_STATES, getDistrictsByState, getCitiesByDistrict } from '@/lib/indianLocations';
+import { Constants } from '@/integrations/supabase/types';
 
 interface Company {
   id: string;
@@ -54,6 +55,7 @@ export const CompanySelectWithCreate = ({ value, onValueChange, onCompanyCreated
     city: '',
     district: '',
     pincode: '',
+    ledger_type: 'sundry_debtors',
   });
 
   useEffect(() => {
@@ -121,6 +123,7 @@ export const CompanySelectWithCreate = ({ value, onValueChange, onCompanyCreated
         city: formData.city || null,
         district: formData.district || null,
         pincode: formData.pincode || null,
+        ledger_type: formData.ledger_type as any,
         user_id: user.id,
       };
 
@@ -169,6 +172,7 @@ export const CompanySelectWithCreate = ({ value, onValueChange, onCompanyCreated
       city: '',
       district: '',
       pincode: '',
+      ledger_type: 'sundry_debtors',
     });
   };
 
@@ -263,6 +267,24 @@ export const CompanySelectWithCreate = ({ value, onValueChange, onCompanyCreated
                   <SelectContent className="max-h-[300px]">
                     {INDIAN_STATES.map((state) => (
                       <SelectItem key={state.name} value={state.name}>{state.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Ledger Group *</Label>
+                <Select
+                  value={formData.ledger_type}
+                  onValueChange={(val) => setFormData({ ...formData, ledger_type: val as any })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select group" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {Constants.public.Enums.ledger_type.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

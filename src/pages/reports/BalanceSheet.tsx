@@ -72,6 +72,19 @@ export default function BalanceSheet() {
 
     setLoading(true);
     try {
+      // Fetch liability companies
+      const { data: liabilityCompanies, error: liabilityCompError } = await supabase
+        .from('companies')
+        .select('*')
+        .neq('id', selectedCompany)
+        .in('ledger_type', [
+          'capital_account', 'reserves_and_surplus', 'secured_loans', 'unsecured_loans', 
+          'sundry_creditors', 'duties_and_taxes', 'suspense_account', 'current_liabilities',
+          'loans_liability', 'bank_od_account', 'provisions'
+        ]);
+
+      if (liabilityCompError) throw liabilityCompError;
+
       // Fetch liability ledgers
       const { data: liabilityLedgers, error: liabilityError } = await supabase
         .from('ledgers')
@@ -84,6 +97,19 @@ export default function BalanceSheet() {
         ]);
 
       if (liabilityError) throw liabilityError;
+
+      // Fetch asset companies
+      const { data: assetCompanies, error: assetCompError } = await supabase
+        .from('companies')
+        .select('*')
+        .neq('id', selectedCompany)
+        .in('ledger_type', [
+          'fixed_assets', 'investments', 'current_assets', 'sundry_debtors', 
+          'cash_in_hand', 'bank_accounts', 'stock_in_hand', 'deposits_assets', 
+          'loans_and_advances_assets'
+        ]);
+
+      if (assetCompError) throw assetCompError;
 
       // Fetch asset ledgers
       const { data: assetLedgers, error: assetError } = await supabase
@@ -113,29 +139,49 @@ export default function BalanceSheet() {
 
       if (entriesError) throw entriesError;
 
-      const liabilities = liabilityLedgers?.map((ledger) => {
-        const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
-        const balance = Number(ledger.opening_balance || 0) + 
-          ledgerEntries.reduce((sum, e) => sum + Number(e.credit_amount || 0) - Number(e.debit_amount || 0), 0);
-        return {
-          ledgerName: ledger.name,
-          groupName: formatGroupName(ledger.ledger_type),
-          amount: balance,
-          ledgerId: ledger.id,
-        };
-      }) || [];
+      const liabilityCompanyEntries = liabilityCompanies?.map((company) => ({
+        ledgerName: company.name,
+        groupName: formatGroupName(company.ledger_type),
+        amount: 0, // Companies don't have balances directly
+        ledgerId: undefined,
+      })) || [];
 
-      const assets = assetLedgers?.map((ledger) => {
-        const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
-        const balance = Number(ledger.opening_balance || 0) + 
-          ledgerEntries.reduce((sum, e) => sum + Number(e.debit_amount || 0) - Number(e.credit_amount || 0), 0);
-        return {
-          ledgerName: ledger.name,
-          groupName: formatGroupName(ledger.ledger_type),
-          amount: balance,
-          ledgerId: ledger.id,
-        };
-      }) || [];
+      const liabilities = [
+        ...liabilityCompanyEntries,
+        ...(liabilityLedgers?.map((ledger) => {
+          const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
+          const balance = Number(ledger.opening_balance || 0) + 
+            ledgerEntries.reduce((sum, e) => sum + Number(e.credit_amount || 0) - Number(e.debit_amount || 0), 0);
+          return {
+            ledgerName: ledger.name,
+            groupName: formatGroupName(ledger.ledger_type),
+            amount: balance,
+            ledgerId: ledger.id,
+          };
+        }) || [])
+      ];
+
+      const assetCompanyEntries = assetCompanies?.map((company) => ({
+        ledgerName: company.name,
+        groupName: formatGroupName(company.ledger_type),
+        amount: 0, // Companies don't have balances directly
+        ledgerId: undefined,
+      })) || [];
+
+      const assets = [
+        ...assetCompanyEntries,
+        ...(assetLedgers?.map((ledger) => {
+          const ledgerEntries = entries?.filter((e: any) => e.ledger_id === ledger.id) || [];
+          const balance = Number(ledger.opening_balance || 0) + 
+            ledgerEntries.reduce((sum, e) => sum + Number(e.debit_amount || 0) - Number(e.credit_amount || 0), 0);
+          return {
+            ledgerName: ledger.name,
+            groupName: formatGroupName(ledger.ledger_type),
+            amount: balance,
+            ledgerId: ledger.id,
+          };
+        }) || [])
+      ];
 
       setLiabilitiesData(liabilities);
       setAssetsData(assets);
