@@ -13,6 +13,9 @@ import { Building2, Plus, Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
 import { useGstinLookup } from '@/hooks/useGstinLookup';
 import { INDIAN_STATES, getDistrictsByState, getCitiesByDistrict } from '@/lib/indianLocations';
+import type { Database } from '@/integrations/supabase/types';
+
+type LedgerType = Database['public']['Enums']['ledger_type'];
 
 interface Company {
   id: string;
@@ -57,6 +60,7 @@ const Companies = () => {
     city: '',
     district: '',
     pincode: '',
+    ledger_type: 'sundry_debtors' as LedgerType,
   });
 
   useEffect(() => {
@@ -114,6 +118,7 @@ const Companies = () => {
         city: formData.city || null,
         district: formData.district || null,
         pincode: formData.pincode || null,
+        ledger_type: formData.ledger_type || 'sundry_debtors',
       };
 
       if (editingCompany) {
@@ -206,6 +211,7 @@ const Companies = () => {
       city: '',
       district: '',
       pincode: '',
+      ledger_type: 'sundry_debtors' as LedgerType,
     });
     setEditingCompany(null);
   };
@@ -245,6 +251,7 @@ const Companies = () => {
       city: fullCompanyData?.city || '',
       district: fullCompanyData?.district || '',
       pincode: fullCompanyData?.pincode || '',
+      ledger_type: fullCompanyData?.ledger_type || 'sundry_debtors',
     });
     setIsDialogOpen(true);
   };
@@ -318,6 +325,48 @@ const Companies = () => {
                     required
                     placeholder="Auto-filled from GSTIN"
                   />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="ledger_type">Ledger Group *</Label>
+                  <Select
+                    value={formData.ledger_type}
+                    onValueChange={(value: LedgerType) => setFormData({ ...formData, ledger_type: value })}
+                  >
+                    <SelectTrigger id="ledger_type">
+                      <SelectValue placeholder="Select ledger group" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <SelectItem value="sundry_debtors">Sundry Debtors</SelectItem>
+                      <SelectItem value="sundry_creditors">Sundry Creditors</SelectItem>
+                      <SelectItem value="capital_account">Capital Account</SelectItem>
+                      <SelectItem value="reserves_and_surplus">Reserves & Surplus</SelectItem>
+                      <SelectItem value="secured_loans">Secured Loans</SelectItem>
+                      <SelectItem value="unsecured_loans">Unsecured Loans</SelectItem>
+                      <SelectItem value="duties_and_taxes">Duties & Taxes</SelectItem>
+                      <SelectItem value="suspense_account">Suspense Account</SelectItem>
+                      <SelectItem value="current_liabilities">Current Liabilities</SelectItem>
+                      <SelectItem value="loans_liability">Loans (Liability)</SelectItem>
+                      <SelectItem value="bank_od_account">Bank OD Account</SelectItem>
+                      <SelectItem value="provisions">Provisions</SelectItem>
+                      <SelectItem value="fixed_assets">Fixed Assets</SelectItem>
+                      <SelectItem value="investments">Investments</SelectItem>
+                      <SelectItem value="current_assets">Current Assets</SelectItem>
+                      <SelectItem value="cash_in_hand">Cash in Hand</SelectItem>
+                      <SelectItem value="bank_accounts">Bank Accounts</SelectItem>
+                      <SelectItem value="stock_in_hand">Stock in Hand</SelectItem>
+                      <SelectItem value="deposits_assets">Deposits (Asset)</SelectItem>
+                      <SelectItem value="loans_and_advances_assets">Loans & Advances (Asset)</SelectItem>
+                      <SelectItem value="sales_accounts">Sales Accounts</SelectItem>
+                      <SelectItem value="direct_incomes">Direct Incomes</SelectItem>
+                      <SelectItem value="indirect_incomes">Indirect Incomes</SelectItem>
+                      <SelectItem value="purchase_accounts">Purchase Accounts</SelectItem>
+                      <SelectItem value="direct_expenses">Direct Expenses</SelectItem>
+                      <SelectItem value="indirect_expenses">Indirect Expenses</SelectItem>
+                      <SelectItem value="branch_divisions">Branch/Divisions</SelectItem>
+                      <SelectItem value="misc_expenses_asset">Misc. Expenses (Asset)</SelectItem>
+                      <SelectItem value="profit_and_loss_account">Profit & Loss A/c</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="taxpayer_type">Taxpayer Type</Label>
