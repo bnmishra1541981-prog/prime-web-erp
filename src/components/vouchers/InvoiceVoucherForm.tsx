@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { Plus, Trash2, FileText } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { useNavigate } from 'react-router-dom';
+import { InvoiceNumberSettings } from './InvoiceNumberSettings';
+import { CompanySelectWithCreate } from './CompanySelectWithCreate';
+import { ResponsiveTable } from '@/components/ResponsiveTable';
 
 type VoucherType = Database['public']['Enums']['voucher_type'];
 
@@ -43,6 +46,8 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
   const [companies, setCompanies] = useState([]);
   const [ledgers, setLedgers] = useState([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
+  const [invoicePrefix, setInvoicePrefix] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState(1);
   const [formData, setFormData] = useState({
     company_id: '',
     voucher_number: '',
@@ -50,6 +55,7 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
     reference_number: '', // PO No
     reference_date: new Date().toISOString().split('T')[0], // PO Date
     party_ledger_id: '',
+    party_ledger_group: '',
     billing_address: '',
     shipping_address: '',
     payment_terms: '0',
@@ -89,7 +95,50 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
 
   useEffect(() => {
     fetchInitialData();
+    loadInvoiceSettings();
   }, []);
+
+  useEffect(() => {
+    if (invoicePrefix) {
+      generateNextInvoiceNumber();
+    }
+  }, [invoicePrefix, invoiceNumber, formData.company_id]);
+
+  const loadInvoiceSettings = () => {
+    const savedPrefix = localStorage.getItem('invoice_prefix');
+    const savedNumber = localStorage.getItem('invoice_number');
+    if (savedPrefix) setInvoicePrefix(savedPrefix);
+    if (savedNumber) setInvoiceNumber(parseInt(savedNumber) || 1);
+  };
+
+  const saveInvoiceSettings = (prefix: string, number: number) => {
+    setInvoicePrefix(prefix);
+    setInvoiceNumber(number);
+    localStorage.setItem('invoice_prefix', prefix);
+    localStorage.setItem('invoice_number', number.toString());
+    generateNextInvoiceNumber();
+  };
+
+  const generateNextInvoiceNumber = async () => {
+    if (!invoicePrefix || !formData.company_id) return;
+    
+    const { data, error } = await supabase
+      .from('vouchers')
+      .select('voucher_number')
+      .eq('company_id', formData.company_id)
+      .eq('voucher_type', voucherType)
+      .like('voucher_number', `${invoicePrefix}%`)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (data && data.length > 0) {
+      const lastNumber = data[0].voucher_number.replace(invoicePrefix, '');
+      const nextNum = parseInt(lastNumber) + 1;
+      setFormData(prev => ({ ...prev, voucher_number: `${invoicePrefix}${nextNum.toString().padStart(3, '0')}` }));
+    } else {
+      setFormData(prev => ({ ...prev, voucher_number: `${invoicePrefix}${invoiceNumber.toString().padStart(3, '0')}` }));
+    }
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -317,6 +366,7 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
       reference_number: '',
       reference_date: new Date().toISOString().split('T')[0],
       party_ledger_id: '',
+      party_ledger_group: '',
       billing_address: '',
       shipping_address: '',
       payment_terms: '0',
@@ -359,31 +409,32 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
         <CardTitle>New {voucherType === 'sales' ? 'Sales' : 'Purchase'} Invoice</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Header Information */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Company *</Label>
-              <Select value={formData.company_id} onValueChange={(value) => setFormData({ ...formData, company_id: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map((company: any) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CompanySelectWithCreate
+                value={formData.company_id}
+                onValueChange={(value) => setFormData({ ...formData, company_id: value })}
+                onCompanyCreated={fetchInitialData}
+              />
             </div>
             <div className="space-y-2">
               <Label>Invoice No. *</Label>
-              <Input
-                value={formData.voucher_number}
-                onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })}
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={formData.voucher_number}
+                  onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })}
+                  required
+                  className="flex-1"
+                />
+                <InvoiceNumberSettings
+                  onSave={saveInvoiceSettings}
+                  currentPrefix={invoicePrefix}
+                  currentNumber={invoiceNumber}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Invoice Date *</Label>
@@ -397,12 +448,12 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
             <div className="space-y-2">
               <Label>Party *</Label>
               <Select value={formData.party_ledger_id} onValueChange={(value) => {
-                setFormData({ ...formData, party_ledger_id: value });
                 const party = ledgers.find((l: any) => l.id === value);
                 if (party) {
                   setFormData(prev => ({
                     ...prev,
                     party_ledger_id: value,
+                    party_ledger_group: (party as any).ledger_type || '',
                     billing_address: (party as any).address || '',
                     place_of_supply: (party as any).state || '',
                   }));
@@ -423,7 +474,20 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
           </div>
 
           {/* PO and Payment Details */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label>Party Group</Label>
+              <Input
+                value={formData.party_ledger_group}
+                readOnly
+                className="bg-muted"
+                placeholder="Auto-filled"
+              />
+            </div>
+          </div>
+
+          {/* PO and Payment Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>PO No.</Label>
               <Input
@@ -466,7 +530,7 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
           </div>
 
           {/* Transport Details */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Truck No.</Label>
               <Input
@@ -498,7 +562,7 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
           </div>
 
           {/* Address Details */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Bill To Address</Label>
               <Textarea
@@ -531,16 +595,16 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
 
           {/* Items Table */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <Label className="text-lg font-semibold">Items</Label>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <Label className="text-base sm:text-lg font-semibold">Items</Label>
               <Button type="button" size="sm" onClick={addItem}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Item
               </Button>
             </div>
 
-            <div className="border rounded-lg overflow-x-auto">
-              <table className="w-full">
+            <ResponsiveTable>
+              <table className="w-full min-w-[1200px]">
                 <thead className="bg-muted">
                   <tr>
                     <th className="p-2 text-left text-xs">Sr.</th>
@@ -629,11 +693,11 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ResponsiveTable>
           </div>
 
           {/* Totals Section */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-2">
               <Label>Narration</Label>
               <Textarea

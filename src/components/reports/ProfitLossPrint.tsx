@@ -115,7 +115,7 @@ export const ProfitLossPrint = forwardRef<HTMLDivElement, ProfitLossPrintProps>(
             <div className="bg-gray-100 p-2 border-b border-black">
               <h3 className="font-bold text-sm">EXPENDITURE</h3>
             </div>
-            <div className=<div className="p-3 flex flex-col justify-between min-h-[650px]">
+            <div className="p-3">
 
               {/* Opening Stock */}
               <div className="bg-yellow-100 px-2 py-1">
@@ -279,7 +279,7 @@ export const ProfitLossPrint = forwardRef<HTMLDivElement, ProfitLossPrintProps>(
               <span className="font-mono">₹ {leftTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
-          <div className="p-3 flex flex-col justify-between min-h-[650px]">
+          <div className="p-3">
             <div className="flex justify-between font-bold text-sm">
               <span>TOTAL</span>
               <span className="font-mono">₹ {rightTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
