@@ -8,12 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Trash2, FileText } from 'lucide-react';
+import { Plus, Trash2, FileText, Search } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { useNavigate } from 'react-router-dom';
 import { InvoiceNumberSettings } from './InvoiceNumberSettings';
 import { CompanySelectWithCreate } from './CompanySelectWithCreate';
 import { ResponsiveTable } from '@/components/ResponsiveTable';
+import { SelectWithCreate } from './SelectWithCreate';
+import { useGstinLookup } from '@/hooks/useGstinLookup';
 
 type VoucherType = Database['public']['Enums']['voucher_type'];
 
@@ -43,22 +45,35 @@ interface InvoiceVoucherFormProps {
 export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFormProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [companies, setCompanies] = useState([]);
+  const { fetchGstinDetails, loading: gstinLoading } = useGstinLookup();
+  const [companies, setCompanies] = useState<any[]>([]);
   const [ledgers, setLedgers] = useState([]);
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [invoicePrefix, setInvoicePrefix] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState(1);
+  const [poNumbers, setPoNumbers] = useState<string[]>([]);
+  const [billToCompanies, setBillToCompanies] = useState<any[]>([]);
+  const [shipToCompanies, setShipToCompanies] = useState<any[]>([]);
+  const [isManualDate, setIsManualDate] = useState(false);
   const [formData, setFormData] = useState({
     company_id: '',
+    company_name: '',
+    company_address: '',
+    company_email: '',
+    company_phone: '',
+    company_gstin: '',
+    company_state: '',
     voucher_number: '',
     voucher_date: new Date().toISOString().split('T')[0],
     reference_number: '', // PO No
     reference_date: new Date().toISOString().split('T')[0], // PO Date
     party_ledger_id: '',
     party_ledger_group: '',
+    bill_to_company_id: '',
     billing_address: '',
+    ship_to_company_id: '',
     shipping_address: '',
-    payment_terms: '0',
+    payment_terms: 'Cash',
     payment_mode: '',
     truck_number: '',
     transport_name: '',
@@ -96,6 +111,21 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
   useEffect(() => {
     fetchInitialData();
     loadInvoiceSettings();
+    
+    // F2 key handler for manual date entry
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        setIsManualDate(true);
+        setTimeout(() => {
+          const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+          dateInput?.focus();
+        }, 100);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -142,22 +172,84 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
 
   const fetchInitialData = async () => {
     try {
-      const [companiesRes, ledgersRes, stockItemsRes] = await Promise.all([
-        supabase.from('companies').select('id, name').order('name'),
-        supabase.from('ledgers').select('id, name, ledger_type, address, gstin, state').order('name'),
+      const [companiesRes, ledgersRes, stockItemsRes, vouchersRes] = await Promise.all([
+        supabase.from('companies').select('*').order('name'),
+        supabase.from('ledgers').select('id, name, ledger_type, address, gstin, state, email, phone').order('name'),
         supabase.from('stock_items').select('id, name, hsn_code, unit').eq('is_active', true).order('name'),
+        supabase.from('vouchers').select('reference_number').eq('voucher_type', voucherType).not('reference_number', 'is', null),
       ]);
 
       if (companiesRes.data) {
         setCompanies(companiesRes.data);
+        setBillToCompanies(companiesRes.data);
+        setShipToCompanies(companiesRes.data);
         if (companiesRes.data.length > 0) {
-          setFormData(prev => ({ ...prev, company_id: companiesRes.data[0].id }));
+          handleCompanyChange(companiesRes.data[0].id, companiesRes.data);
         }
       }
       if (ledgersRes.data) setLedgers(ledgersRes.data);
       if (stockItemsRes.data) setStockItems(stockItemsRes.data);
+      if (vouchersRes.data) {
+        const uniquePOs = Array.from(new Set(vouchersRes.data.map(v => v.reference_number).filter(Boolean))) as string[];
+        setPoNumbers(uniquePOs);
+      }
     } catch (error: any) {
       toast.error('Failed to fetch data');
+    }
+  };
+
+  const handleCompanyChange = async (companyId: string, companiesList = companies) => {
+    const company = companiesList.find((c: any) => c.id === companyId);
+    if (company) {
+      setFormData(prev => ({
+        ...prev,
+        company_id: companyId,
+        company_name: company.name || '',
+        company_address: company.address || '',
+        company_email: company.email || '',
+        company_phone: company.phone || '',
+        company_gstin: company.gstin || '',
+        company_state: company.state || '',
+        place_of_supply: company.state || prev.place_of_supply,
+      }));
+    }
+  };
+
+  const handleTransportGstinLookup = async () => {
+    if (!formData.transport_gst || formData.transport_gst.length !== 15) {
+      toast.error('Please enter a valid 15-digit GSTIN');
+      return;
+    }
+
+    const gstinData = await fetchGstinDetails(formData.transport_gst);
+    if (gstinData) {
+      setFormData(prev => ({
+        ...prev,
+        transport_name: gstinData.trade_name || gstinData.legal_name || gstinData.name || prev.transport_name,
+      }));
+    }
+  };
+
+  const handleBillToChange = (companyId: string) => {
+    const company = billToCompanies.find((c: any) => c.id === companyId);
+    if (company) {
+      setFormData(prev => ({
+        ...prev,
+        bill_to_company_id: companyId,
+        billing_address: company.address || '',
+      }));
+    }
+  };
+
+  const handleShipToChange = (companyId: string) => {
+    const company = shipToCompanies.find((c: any) => c.id === companyId);
+    if (company) {
+      setFormData(prev => ({
+        ...prev,
+        ship_to_company_id: companyId,
+        shipping_address: company.address || '',
+        delivery_place: company.city || '',
+      }));
     }
   };
 
@@ -283,7 +375,9 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
           party_ledger_id: formData.party_ledger_id || null,
           billing_address: formData.billing_address,
           shipping_address: formData.shipping_address,
-          payment_terms: parseInt(formData.payment_terms),
+          payment_terms: formData.payment_terms === 'Cash' ? 0 : 
+                        formData.payment_terms === 'Advance' ? 0 :
+                        parseInt(formData.payment_terms.replace(' Days', '')) || 0,
           payment_mode: formData.payment_mode,
           truck_number: formData.truck_number,
           transport_name: formData.transport_name,
@@ -359,24 +453,33 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
   };
 
   const resetForm = () => {
+    const firstCompany = companies[0];
     setFormData({
-      company_id: companies[0]?.id || '',
+      company_id: firstCompany?.id || '',
+      company_name: firstCompany?.name || '',
+      company_address: firstCompany?.address || '',
+      company_email: firstCompany?.email || '',
+      company_phone: firstCompany?.phone || '',
+      company_gstin: firstCompany?.gstin || '',
+      company_state: firstCompany?.state || '',
       voucher_number: '',
       voucher_date: new Date().toISOString().split('T')[0],
       reference_number: '',
       reference_date: new Date().toISOString().split('T')[0],
       party_ledger_id: '',
       party_ledger_group: '',
+      bill_to_company_id: '',
       billing_address: '',
+      ship_to_company_id: '',
       shipping_address: '',
-      payment_terms: '0',
+      payment_terms: 'Cash',
       payment_mode: '',
       truck_number: '',
       transport_name: '',
       transport_gst: '',
       lr_number: '',
       delivery_place: '',
-      place_of_supply: '',
+      place_of_supply: firstCompany?.state || '',
       narration: '',
       tcs_rate: '0',
       tds_rate: '0',
@@ -410,41 +513,8 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-          {/* Header Information */}
+          {/* Header Information - Reorganized with Party at top */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label>Company *</Label>
-              <CompanySelectWithCreate
-                value={formData.company_id}
-                onValueChange={(value) => setFormData({ ...formData, company_id: value })}
-                onCompanyCreated={fetchInitialData}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Invoice No. *</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={formData.voucher_number}
-                  onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })}
-                  required
-                  className="flex-1"
-                />
-                <InvoiceNumberSettings
-                  onSave={saveInvoiceSettings}
-                  currentPrefix={invoicePrefix}
-                  currentNumber={invoiceNumber}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Invoice Date *</Label>
-              <Input
-                type="date"
-                value={formData.voucher_date}
-                onChange={(e) => setFormData({ ...formData, voucher_date: e.target.value })}
-                required
-              />
-            </div>
             <div className="space-y-2">
               <Label>Party *</Label>
               <Select value={formData.party_ledger_id} onValueChange={(value) => {
@@ -454,8 +524,6 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
                     ...prev,
                     party_ledger_id: value,
                     party_ledger_group: (party as any).ledger_type || '',
-                    billing_address: (party as any).address || '',
-                    place_of_supply: (party as any).state || '',
                   }));
                 }
               }}>
@@ -471,14 +539,84 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* PO and Payment Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Party Group</Label>
               <Input
                 value={formData.party_ledger_group}
+                readOnly
+                className="bg-muted"
+                placeholder="Auto-filled"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Invoice No. *</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={formData.voucher_number}
+                  onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })}
+                  required
+                  className="flex-1"
+                  style={{ width: `${Math.max(formData.voucher_number.length * 8 + 40, 120)}px` }}
+                />
+                <InvoiceNumberSettings
+                  onSave={saveInvoiceSettings}
+                  currentPrefix={invoicePrefix}
+                  currentNumber={invoiceNumber}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Invoice Date * (F2 for manual)</Label>
+              <Input
+                type="date"
+                value={formData.voucher_date}
+                onChange={(e) => setFormData({ ...formData, voucher_date: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Company Information with Auto-fill */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label>Company *</Label>
+              <CompanySelectWithCreate
+                value={formData.company_id}
+                onValueChange={(value) => handleCompanyChange(value)}
+                onCompanyCreated={fetchInitialData}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Company Address</Label>
+              <Input
+                value={formData.company_address}
+                readOnly
+                className="bg-muted"
+                placeholder="Auto-filled"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                value={formData.company_email}
+                readOnly
+                className="bg-muted"
+                placeholder="Auto-filled"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input
+                value={formData.company_phone}
+                readOnly
+                className="bg-muted"
+                placeholder="Auto-filled"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>GSTIN</Label>
+              <Input
+                value={formData.company_gstin}
                 readOnly
                 className="bg-muted"
                 placeholder="Auto-filled"
@@ -490,9 +628,12 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>PO No.</Label>
-              <Input
+              <SelectWithCreate
                 value={formData.reference_number}
-                onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                onValueChange={(value) => setFormData({ ...formData, reference_number: value })}
+                options={poNumbers}
+                placeholder="Select or add PO"
+                onAddNew={(value) => setPoNumbers([...poNumbers, value])}
               />
             </div>
             <div className="space-y-2">
@@ -504,11 +645,13 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
               />
             </div>
             <div className="space-y-2">
-              <Label>Payment Terms (Days)</Label>
-              <Input
-                type="number"
+              <Label>Payment Terms</Label>
+              <SelectWithCreate
                 value={formData.payment_terms}
-                onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                onValueChange={(value) => setFormData({ ...formData, payment_terms: value })}
+                options={['Cash', 'Advance', '15 Days', '30 Days', '45 Days', '60 Days', '90 Days']}
+                placeholder="Select payment terms"
+                onAddNew={(value) => {}}
               />
             </div>
             <div className="space-y-2">
@@ -539,17 +682,31 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
               />
             </div>
             <div className="space-y-2">
+              <Label>Transport GST</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={formData.transport_gst}
+                  onChange={(e) => setFormData({ ...formData, transport_gst: e.target.value.toUpperCase() })}
+                  maxLength={15}
+                  placeholder="15-digit GSTIN"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleTransportGstinLookup}
+                  disabled={gstinLoading || !formData.transport_gst || formData.transport_gst.length !== 15}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label>Transport Name</Label>
               <Input
                 value={formData.transport_name}
                 onChange={(e) => setFormData({ ...formData, transport_name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Transport GST</Label>
-              <Input
-                value={formData.transport_gst}
-                onChange={(e) => setFormData({ ...formData, transport_gst: e.target.value })}
+                placeholder="Auto-filled from GST"
               />
             </div>
             <div className="space-y-2">
@@ -561,14 +718,31 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
             </div>
           </div>
 
-          {/* Address Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+          {/* Address Details with Company Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label>Bill To Company</Label>
+              <CompanySelectWithCreate
+                value={formData.bill_to_company_id}
+                onValueChange={handleBillToChange}
+                onCompanyCreated={fetchInitialData}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Bill To Address</Label>
               <Textarea
                 value={formData.billing_address}
                 onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })}
                 rows={2}
+                placeholder="Auto-filled"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Ship To Company</Label>
+              <CompanySelectWithCreate
+                value={formData.ship_to_company_id}
+                onValueChange={handleShipToChange}
+                onCompanyCreated={fetchInitialData}
               />
             </div>
             <div className="space-y-2">
@@ -577,18 +751,28 @@ export const InvoiceVoucherForm = ({ voucherType, onSuccess }: InvoiceVoucherFor
                 value={formData.shipping_address}
                 onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })}
                 rows={2}
+                placeholder="Auto-filled"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label>Delivery Place</Label>
               <Input
                 value={formData.delivery_place}
                 onChange={(e) => setFormData({ ...formData, delivery_place: e.target.value })}
+                placeholder="Auto-filled from Ship To"
               />
+            </div>
+            <div className="space-y-2">
               <Label>Place of Supply</Label>
-              <Input
+              <SelectWithCreate
                 value={formData.place_of_supply}
-                onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })}
+                onValueChange={(value) => setFormData({ ...formData, place_of_supply: value })}
+                options={[...new Set([formData.company_state, formData.place_of_supply].filter(Boolean))]}
+                placeholder="Select or add place"
+                onAddNew={(value) => {}}
               />
             </div>
           </div>
