@@ -19,6 +19,12 @@ interface Order {
   product: string;
   ordered_quantity: number;
   status: string;
+  size?: string | null;
+  width_inch?: number | null;
+  thickness_inch?: number | null;
+  length_feet?: number | null;
+  cft?: number | null;
+  ready_materials?: number | null;
 }
 
 interface Machine {
@@ -54,6 +60,7 @@ const ProductionEntry = () => {
   const [todayEntries, setTodayEntries] = useState<ProductionEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
   const [formData, setFormData] = useState({
     order_id: '',
@@ -65,6 +72,20 @@ const ProductionEntry = () => {
     wastage: '0',
     remarks: ''
   });
+
+  const handleOrderChange = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    setSelectedOrder(order || null);
+    setFormData({
+      ...formData,
+      order_id: orderId,
+      size: order?.size || ''
+    });
+  };
+
+  const balanceQty = selectedOrder 
+    ? selectedOrder.ordered_quantity - (selectedOrder.ready_materials || 0)
+    : 0;
 
   useEffect(() => {
     if (user) {
@@ -183,11 +204,14 @@ const ProductionEntry = () => {
     try {
       setSubmitting(true);
 
-      const { error } = await supabase
+      const producedQty = parseFloat(formData.produced_quantity);
+
+      // Insert production entry
+      const { error: entryError } = await supabase
         .from('production_entries')
         .insert({
           order_id: formData.order_id,
-          produced_quantity: parseFloat(formData.produced_quantity),
+          produced_quantity: producedQty,
           entry_date: formData.entry_date,
           machine_id: formData.machine_id || null,
           shift: formData.shift || null,
@@ -197,7 +221,19 @@ const ProductionEntry = () => {
           created_by: user?.id
         });
 
-      if (error) throw error;
+      if (entryError) throw entryError;
+
+      // Update ready_materials in sales_orders
+      if (selectedOrder) {
+        const newReadyMaterials = (selectedOrder.ready_materials || 0) + producedQty;
+        
+        const { error: updateError } = await supabase
+          .from('sales_orders')
+          .update({ ready_materials: newReadyMaterials })
+          .eq('id', formData.order_id);
+
+        if (updateError) throw updateError;
+      }
 
       toast({
         title: 'Success',
@@ -216,7 +252,10 @@ const ProductionEntry = () => {
         remarks: ''
       });
 
-      // Refresh today's entries
+      setSelectedOrder(null);
+
+      // Refresh data
+      fetchData();
       fetchTodayEntries();
       
     } catch (error: any) {
@@ -300,7 +339,7 @@ const ProductionEntry = () => {
                   <Label htmlFor="order_id">Order *</Label>
                   <Select
                     value={formData.order_id}
-                    onValueChange={(value) => setFormData({ ...formData, order_id: value })}
+                    onValueChange={handleOrderChange}
                     required
                   >
                     <SelectTrigger>
@@ -320,9 +359,57 @@ const ProductionEntry = () => {
                   </Select>
                 </div>
 
+                {/* Order Size Details */}
+                {selectedOrder && (selectedOrder.size || selectedOrder.width_inch || selectedOrder.thickness_inch || selectedOrder.length_feet) && (
+                  <div className="p-3 bg-muted rounded-lg space-y-2">
+                    <p className="text-sm font-semibold">Order Specifications</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {selectedOrder.size && (
+                        <div>
+                          <span className="text-muted-foreground">Size:</span> {selectedOrder.size}
+                        </div>
+                      )}
+                      {selectedOrder.width_inch && (
+                        <div>
+                          <span className="text-muted-foreground">Width:</span> {selectedOrder.width_inch}"
+                        </div>
+                      )}
+                      {selectedOrder.thickness_inch && (
+                        <div>
+                          <span className="text-muted-foreground">Thickness:</span> {selectedOrder.thickness_inch}"
+                        </div>
+                      )}
+                      {selectedOrder.length_feet && (
+                        <div>
+                          <span className="text-muted-foreground">Length:</span> {selectedOrder.length_feet}'
+                        </div>
+                      )}
+                      {selectedOrder.cft && (
+                        <div>
+                          <span className="text-muted-foreground">CFT:</span> {selectedOrder.cft}
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Order Qty:</span>
+                        <span className="font-semibold">{selectedOrder.ordered_quantity}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Ready Materials:</span>
+                        <span className="font-semibold text-green-600">{selectedOrder.ready_materials || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold">
+                        <span className="text-muted-foreground">Balance Qty:</span>
+                        <span className={balanceQty > 0 ? 'text-orange-600' : 'text-green-600'}>{balanceQty}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="produced_quantity">Quantity *</Label>
+                    <Label htmlFor="produced_quantity">Production Qty (No of PCs) *</Label>
                     <Input
                       id="produced_quantity"
                       type="number"

@@ -24,6 +24,10 @@ const orderSchema = z.object({
   due_date: z.string().min(1, 'Due date is required'),
   priority: z.number().min(0).max(5),
   notes: z.string().max(1000).optional(),
+  size: z.string().optional(),
+  width_inch: z.number().optional(),
+  thickness_inch: z.number().optional(),
+  length_feet: z.number().optional(),
 });
 
 interface Order {
@@ -38,6 +42,12 @@ interface Order {
   notes: string | null;
   created_at: string;
   assignedUsers?: { full_name: string }[];
+  size?: string | null;
+  width_inch?: number | null;
+  thickness_inch?: number | null;
+  length_feet?: number | null;
+  cft?: number | null;
+  ready_materials?: number | null;
 }
 
 interface TeamMember {
@@ -68,8 +78,45 @@ const OrderManagement = () => {
     ordered_quantity: '',
     due_date: format(new Date(), 'yyyy-MM-dd'),
     priority: '1',
-    notes: ''
+    notes: '',
+    size: '',
+    width_inch: '',
+    thickness_inch: '',
+    length_feet: '',
+    cft: ''
   });
+
+  // Calculate CFT when size fields change
+  const calculateCFT = (width: string, thickness: string, length: string, qty: string) => {
+    const w = parseFloat(width);
+    const t = parseFloat(thickness);
+    const l = parseFloat(length);
+    const q = parseFloat(qty);
+    
+    if (w && t && l && q) {
+      // CFT = (Width in inches × Thickness in inches × Length in feet × Quantity) ÷ 144
+      const cft = (w * t * l * q) / 144;
+      return cft.toFixed(2);
+    }
+    return '';
+  };
+
+  const handleSizeFieldChange = (field: string, value: string) => {
+    const newFormData = { ...formData, [field]: value };
+    
+    // Auto-calculate CFT
+    if (['width_inch', 'thickness_inch', 'length_feet', 'ordered_quantity'].includes(field)) {
+      const cft = calculateCFT(
+        field === 'width_inch' ? value : formData.width_inch,
+        field === 'thickness_inch' ? value : formData.thickness_inch,
+        field === 'length_feet' ? value : formData.length_feet,
+        field === 'ordered_quantity' ? value : formData.ordered_quantity
+      );
+      newFormData.cft = cft;
+    }
+    
+    setFormData(newFormData);
+  };
 
   useEffect(() => {
     if (user) {
@@ -157,6 +204,10 @@ const OrderManagement = () => {
         due_date: formData.due_date,
         priority: Number(formData.priority),
         notes: formData.notes || undefined,
+        size: formData.size || undefined,
+        width_inch: formData.width_inch ? Number(formData.width_inch) : undefined,
+        thickness_inch: formData.thickness_inch ? Number(formData.thickness_inch) : undefined,
+        length_feet: formData.length_feet ? Number(formData.length_feet) : undefined,
       });
       setErrors({});
       return true;
@@ -204,7 +255,13 @@ const OrderManagement = () => {
           priority: Number(formData.priority),
           notes: formData.notes.trim() || null,
           created_by: user.id,
-          status: 'pending'
+          status: 'pending',
+          size: formData.size.trim() || null,
+          width_inch: formData.width_inch ? Number(formData.width_inch) : null,
+          thickness_inch: formData.thickness_inch ? Number(formData.thickness_inch) : null,
+          length_feet: formData.length_feet ? Number(formData.length_feet) : null,
+          cft: formData.cft ? Number(formData.cft) : null,
+          ready_materials: 0
         })
         .select()
         .single();
@@ -233,7 +290,12 @@ const OrderManagement = () => {
         ordered_quantity: '',
         due_date: format(new Date(), 'yyyy-MM-dd'),
         priority: '1',
-        notes: ''
+        notes: '',
+        size: '',
+        width_inch: '',
+        thickness_inch: '',
+        length_feet: '',
+        cft: ''
       });
       setSelectedMembers(new Set());
       setErrors({});
@@ -451,7 +513,7 @@ const OrderManagement = () => {
                       type="number"
                       step="0.01"
                       value={formData.ordered_quantity}
-                      onChange={(e) => setFormData({ ...formData, ordered_quantity: e.target.value })}
+                      onChange={(e) => handleSizeFieldChange('ordered_quantity', e.target.value)}
                       placeholder="Enter quantity"
                       className={errors.ordered_quantity ? 'border-red-500' : ''}
                     />
@@ -492,6 +554,73 @@ const OrderManagement = () => {
                         <SelectItem value="5">5 - Critical</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                {/* Size Fields */}
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="font-semibold text-sm">Size Details</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="size">Size Name</Label>
+                      <Input
+                        id="size"
+                        value={formData.size}
+                        onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                        placeholder="e.g., Standard, Large, Custom"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="width_inch">Width (inches)</Label>
+                      <Input
+                        id="width_inch"
+                        type="number"
+                        step="0.01"
+                        value={formData.width_inch}
+                        onChange={(e) => handleSizeFieldChange('width_inch', e.target.value)}
+                        placeholder="Width in inches"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="thickness_inch">Thickness (inches)</Label>
+                      <Input
+                        id="thickness_inch"
+                        type="number"
+                        step="0.01"
+                        value={formData.thickness_inch}
+                        onChange={(e) => handleSizeFieldChange('thickness_inch', e.target.value)}
+                        placeholder="Thickness in inches"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="length_feet">Length (feet)</Label>
+                      <Input
+                        id="length_feet"
+                        type="number"
+                        step="0.01"
+                        value={formData.length_feet}
+                        onChange={(e) => handleSizeFieldChange('length_feet', e.target.value)}
+                        placeholder="Length in feet"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cft">CFT (Auto-calculated)</Label>
+                      <Input
+                        id="cft"
+                        value={formData.cft}
+                        readOnly
+                        placeholder="0.00"
+                        className="bg-muted"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Formula: (Width × Thickness × Length × Qty) ÷ 144
+                      </p>
+                    </div>
                   </div>
                 </div>
 
