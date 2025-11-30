@@ -506,28 +506,37 @@ export type Database = {
       }
       machines: {
         Row: {
+          capacity: number | null
           created_at: string | null
           department: string | null
           id: string
           is_active: boolean | null
           machine_code: string
+          maintenance_schedule: string | null
           name: string
+          next_maintenance_date: string | null
         }
         Insert: {
+          capacity?: number | null
           created_at?: string | null
           department?: string | null
           id?: string
           is_active?: boolean | null
           machine_code: string
+          maintenance_schedule?: string | null
           name: string
+          next_maintenance_date?: string | null
         }
         Update: {
+          capacity?: number | null
           created_at?: string | null
           department?: string | null
           id?: string
           is_active?: boolean | null
           machine_code?: string
+          maintenance_schedule?: string | null
           name?: string
+          next_maintenance_date?: string | null
         }
         Relationships: []
       }
