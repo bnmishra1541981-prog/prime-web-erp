@@ -21,6 +21,8 @@ import ProfitAndLoss from "./pages/reports/ProfitAndLoss";
 import BalanceSheet from "./pages/reports/BalanceSheet";
 import InvoiceDemo from "./pages/InvoiceDemo";
 import Notifications from "./pages/Notifications";
+import ProductionOrders from "./pages/production/ProductionOrders";
+import OrderDetail from "./pages/production/OrderDetail";
 import StockGroups from "./pages/masters/StockGroups";
 import StockItems from "./pages/masters/StockItems";
 import Godowns from "./pages/masters/Godowns";
@@ -175,6 +177,22 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/orders"
+        element={
+          <ProtectedRoute>
+            <ProductionOrders />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/orders/:orderId"
+        element={
+          <ProtectedRoute>
+            <OrderDetail />
           </ProtectedRoute>
         }
       />

@@ -18,6 +18,7 @@ import {
   Users,
   Package,
   Receipt,
+  BookOpen,
   DollarSign,
   TrendingUp,
   Settings,
@@ -32,6 +33,7 @@ import solviserLogo from '@/assets/solviser-logo.png';
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Notifications', url: '/notifications', icon: Bell },
+  { title: 'Production Orders', url: '/production/orders', icon: Package },
   {
     title: 'Masters',
     icon: Building2,

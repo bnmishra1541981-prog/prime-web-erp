@@ -301,6 +301,53 @@ export type Database = {
           },
         ]
       }
+      dispatch_entries: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          dispatch_date: string | null
+          dispatched_quantity: number
+          driver_name: string | null
+          id: string
+          loading_remarks: string | null
+          order_id: string
+          transporter: string | null
+          vehicle_no: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          dispatch_date?: string | null
+          dispatched_quantity: number
+          driver_name?: string | null
+          id?: string
+          loading_remarks?: string | null
+          order_id: string
+          transporter?: string | null
+          vehicle_no?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          dispatch_date?: string | null
+          dispatched_quantity?: number
+          driver_name?: string | null
+          id?: string
+          loading_remarks?: string | null
+          order_id?: string
+          transporter?: string | null
+          vehicle_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_entries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       godowns: {
         Row: {
           address: string | null
@@ -457,6 +504,33 @@ export type Database = {
           },
         ]
       }
+      machines: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          id: string
+          is_active: boolean | null
+          machine_code: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          is_active?: boolean | null
+          machine_code: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          is_active?: boolean | null
+          machine_code?: string
+          name?: string
+        }
+        Relationships: []
+      }
       notification_logs: {
         Row: {
           channel: string
@@ -495,6 +569,98 @@ export type Database = {
           },
         ]
       }
+      order_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_to: string
+          id: string
+          order_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to: string
+          id?: string
+          order_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to?: string
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_assignments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_entries: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          edited_reason: string | null
+          entry_date: string | null
+          id: string
+          machine_id: string | null
+          order_id: string
+          previous_quantity: number | null
+          produced_quantity: number
+          remarks: string | null
+          shift: string | null
+          updated_at: string | null
+          wastage: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          edited_reason?: string | null
+          entry_date?: string | null
+          id?: string
+          machine_id?: string | null
+          order_id: string
+          previous_quantity?: number | null
+          produced_quantity: number
+          remarks?: string | null
+          shift?: string | null
+          updated_at?: string | null
+          wastage?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          edited_reason?: string | null
+          entry_date?: string | null
+          id?: string
+          machine_id?: string | null
+          order_id?: string
+          previous_quantity?: number | null
+          produced_quantity?: number
+          remarks?: string | null
+          shift?: string | null
+          updated_at?: string | null
+          wastage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_entries_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_entries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company_name: string | null
@@ -519,6 +685,51 @@ export type Database = {
           email?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_orders: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_name: string
+          due_date: string
+          id: string
+          notes: string | null
+          order_no: string
+          ordered_quantity: number
+          priority: number | null
+          product: string
+          status: Database["public"]["Enums"]["order_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_name: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          order_no: string
+          ordered_quantity: number
+          priority?: number | null
+          product: string
+          status?: Database["public"]["Enums"]["order_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          order_no?: string
+          ordered_quantity?: number
+          priority?: number | null
+          product?: string
+          status?: Database["public"]["Enums"]["order_status"] | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -658,6 +869,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
       voucher_entries: {
         Row: {
@@ -972,9 +1213,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "owner" | "production" | "dispatch" | "supervisor"
       ledger_type:
         | "capital_account"
         | "reserves_and_surplus"
@@ -1012,6 +1260,11 @@ export type Database = {
         | "reviewed"
         | "hold"
         | "ignored"
+      order_status:
+        | "pending"
+        | "in_production"
+        | "partially_dispatched"
+        | "completed"
       voucher_type:
         | "sales"
         | "purchase"
@@ -1150,6 +1403,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["owner", "production", "dispatch", "supervisor"],
       ledger_type: [
         "capital_account",
         "reserves_and_surplus",
@@ -1188,6 +1442,12 @@ export const Constants = {
         "reviewed",
         "hold",
         "ignored",
+      ],
+      order_status: [
+        "pending",
+        "in_production",
+        "partially_dispatched",
+        "completed",
       ],
       voucher_type: [
         "sales",
