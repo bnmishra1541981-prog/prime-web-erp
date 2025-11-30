@@ -26,6 +26,7 @@ import OrderDetail from "./pages/production/OrderDetail";
 import UserManagement from "./pages/production/UserManagement";
 import OrderAssignment from "./pages/production/OrderAssignment";
 import OrderManagement from "./pages/production/OrderManagement";
+import ProductionDashboard from "./pages/production/ProductionDashboard";
 import StockGroups from "./pages/masters/StockGroups";
 import StockItems from "./pages/masters/StockItems";
 import Godowns from "./pages/masters/Godowns";
@@ -220,6 +221,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <OrderManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/dashboard"
+        element={
+          <ProtectedRoute>
+            <ProductionDashboard />
           </ProtectedRoute>
         }
       />
