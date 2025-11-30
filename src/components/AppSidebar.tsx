@@ -27,6 +27,7 @@ import {
   ChevronDown,
   Bell,
   Truck,
+  BarChart,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
@@ -44,6 +45,7 @@ const menuItems = [
       { title: 'Manage Orders', url: '/production/manage-orders', icon: FileText },
       { title: 'Machines', url: '/production/machines', icon: Wrench },
       { title: 'Dispatch', url: '/production/dispatch', icon: Truck },
+      { title: 'Reports', url: '/production/reports', icon: BarChart },
       { title: 'User Management', url: '/production/users', icon: Users },
     ],
   },

@@ -29,6 +29,7 @@ import OrderManagement from "./pages/production/OrderManagement";
 import ProductionDashboard from "./pages/production/ProductionDashboard";
 import MachineManagement from "./pages/production/MachineManagement";
 import DispatchManagement from "./pages/production/DispatchManagement";
+import ProductionReports from "./pages/production/ProductionReports";
 import StockGroups from "./pages/masters/StockGroups";
 import StockItems from "./pages/masters/StockItems";
 import Godowns from "./pages/masters/Godowns";
@@ -247,6 +248,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <DispatchManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/reports"
+        element={
+          <ProtectedRoute>
+            <ProductionReports />
           </ProtectedRoute>
         }
       />
