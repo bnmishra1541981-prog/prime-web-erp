@@ -667,6 +667,7 @@ export type Database = {
           produced_quantity: number
           remarks: string | null
           shift: string | null
+          size: string | null
           updated_at: string | null
           wastage: number | null
         }
@@ -682,6 +683,7 @@ export type Database = {
           produced_quantity: number
           remarks?: string | null
           shift?: string | null
+          size?: string | null
           updated_at?: string | null
           wastage?: number | null
         }
@@ -697,6 +699,7 @@ export type Database = {
           produced_quantity?: number
           remarks?: string | null
           shift?: string | null
+          size?: string | null
           updated_at?: string | null
           wastage?: number | null
         }
