@@ -37,6 +37,7 @@ const menuItems = [
     title: 'Production',
     icon: Package,
     subItems: [
+      { title: 'Dashboard', url: '/production/dashboard', icon: TrendingUp },
       { title: 'My Orders', url: '/production/orders', icon: Package },
       { title: 'Manage Orders', url: '/production/manage-orders', icon: FileText },
       { title: 'User Management', url: '/production/users', icon: Users },
