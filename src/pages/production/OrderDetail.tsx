@@ -37,6 +37,7 @@ interface ProductionEntry {
   produced_quantity: number;
   machine_id: string | null;
   shift: string | null;
+  size: string | null;
   wastage: number;
   remarks: string | null;
   entry_date: string;
@@ -61,6 +62,7 @@ const OrderDetail = () => {
     produced_quantity: '',
     machine_id: '',
     shift: '',
+    size: '',
     wastage: '',
     remarks: '',
     entry_date: format(new Date(), 'yyyy-MM-dd')
@@ -175,6 +177,7 @@ const OrderDetail = () => {
           produced_quantity: Number(formData.produced_quantity),
           machine_id: formData.machine_id || null,
           shift: formData.shift || null,
+          size: formData.size || null,
           wastage: Number(formData.wastage) || 0,
           remarks: formData.remarks || null,
           entry_date: formData.entry_date,
@@ -190,6 +193,7 @@ const OrderDetail = () => {
         produced_quantity: '',
         machine_id: '',
         shift: '',
+        size: '',
         wastage: '',
         remarks: '',
         entry_date: format(new Date(), 'yyyy-MM-dd')
@@ -374,6 +378,17 @@ const OrderDetail = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="size">Size/Dimension</Label>
+                  <Input
+                    id="size"
+                    type="text"
+                    value={formData.size}
+                    onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                    placeholder="e.g., 10x20, Large, 42"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="wastage">Wastage</Label>
                   <Input
                     id="wastage"
@@ -427,6 +442,7 @@ const OrderDetail = () => {
                         <p className="text-sm text-muted-foreground">
                           {format(new Date(entry.entry_date), 'dd MMM yyyy')}
                           {entry.shift && ` • ${entry.shift} Shift`}
+                          {entry.size && ` • Size: ${entry.size}`}
                         </p>
                       </div>
                       {entry.wastage > 0 && (
