@@ -749,6 +749,7 @@ export type Database = {
       }
       sales_orders: {
         Row: {
+          cft: number | null
           created_at: string | null
           created_by: string | null
           customer_email: string | null
@@ -756,15 +757,21 @@ export type Database = {
           customer_phone: string | null
           due_date: string
           id: string
+          length_feet: number | null
           notes: string | null
           order_no: string
           ordered_quantity: number
           priority: number | null
           product: string
+          ready_materials: number | null
+          size: string | null
           status: Database["public"]["Enums"]["order_status"] | null
+          thickness_inch: number | null
           updated_at: string | null
+          width_inch: number | null
         }
         Insert: {
+          cft?: number | null
           created_at?: string | null
           created_by?: string | null
           customer_email?: string | null
@@ -772,15 +779,21 @@ export type Database = {
           customer_phone?: string | null
           due_date: string
           id?: string
+          length_feet?: number | null
           notes?: string | null
           order_no: string
           ordered_quantity: number
           priority?: number | null
           product: string
+          ready_materials?: number | null
+          size?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
+          thickness_inch?: number | null
           updated_at?: string | null
+          width_inch?: number | null
         }
         Update: {
+          cft?: number | null
           created_at?: string | null
           created_by?: string | null
           customer_email?: string | null
@@ -788,13 +801,18 @@ export type Database = {
           customer_phone?: string | null
           due_date?: string
           id?: string
+          length_feet?: number | null
           notes?: string | null
           order_no?: string
           ordered_quantity?: number
           priority?: number | null
           product?: string
+          ready_materials?: number | null
+          size?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
+          thickness_inch?: number | null
           updated_at?: string | null
+          width_inch?: number | null
         }
         Relationships: []
       }
