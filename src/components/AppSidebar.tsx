@@ -10,7 +10,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -89,10 +88,8 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
   const location = useLocation();
   const [openGroups, setOpenGroups] = useState<string[]>(['Vouchers', 'Masters']);
-  const isCollapsed = state === 'collapsed';
 
   const isActive = (path: string) => location.pathname === path;
   
@@ -109,7 +106,7 @@ export function AppSidebar() {
           <img 
             src={solviserLogo} 
             alt="Solviser" 
-            className={`transition-all ${isCollapsed ? 'h-8' : 'h-10'}`}
+            className="transition-all h-10"
           />
         </div>
       </SidebarHeader>
@@ -125,15 +122,8 @@ export function AppSidebar() {
                   <div className="flex items-center justify-between w-full px-3 py-2 hover:bg-sidebar-accent rounded-md cursor-pointer">
                     <div className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
-                      {!isCollapsed && <span className="text-sm font-medium">{item.title}</span>}
+                      <span className="text-sm font-medium">{item.title}</span>
                     </div>
-                    {!isCollapsed && (
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${
-                          openGroups.includes(item.title) ? 'rotate-180' : ''
-                        }`}
-                      />
-                    )}
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-1 mt-1">
@@ -149,7 +139,7 @@ export function AppSidebar() {
                               activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                             >
                               <subItem.icon className="h-4 w-4 mr-2" />
-                              {!isCollapsed && <span>{subItem.title}</span>}
+                              <span>{subItem.title}</span>
                             </NavLink>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -169,7 +159,7 @@ export function AppSidebar() {
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
                       <item.icon className="h-4 w-4 mr-2" />
-                      {!isCollapsed && <span>{item.title}</span>}
+                      <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
