@@ -22,6 +22,8 @@ interface Order {
   id: string;
   order_no: string;
   customer_name: string;
+  customer_email?: string | null;
+  customer_phone?: string | null;
   product: string;
   ordered_quantity: number;
   due_date: string;
@@ -45,7 +47,14 @@ interface DispatchEntry {
     order_no: string;
     customer_name: string;
     product: string;
+    customer_email?: string | null;
+    customer_phone?: string | null;
   };
+  dispatch_notifications?: Array<{
+    notification_type: string;
+    status: string;
+    sent_at: string | null;
+  }>;
 }
 
 export default function DispatchManagement() {
@@ -162,7 +171,14 @@ export default function DispatchManagement() {
           sales_orders (
             order_no,
             customer_name,
-            product
+            product,
+            customer_email,
+            customer_phone
+          ),
+          dispatch_notifications (
+            notification_type,
+            status,
+            sent_at
           )
         `)
         .order("dispatch_date", { ascending: false })
@@ -209,22 +225,54 @@ export default function DispatchManagement() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("dispatch_entries").insert({
-        order_id: selectedOrder.id,
-        dispatched_quantity: dispatchedQty,
-        dispatch_date: formData.dispatch_date,
-        vehicle_no: formData.vehicle_no || null,
-        driver_name: formData.driver_name || null,
-        transporter: formData.transporter || null,
-        loading_remarks: formData.loading_remarks || null,
-        created_by: user.id,
-      });
+      const { data: dispatchEntry, error } = await supabase
+        .from("dispatch_entries")
+        .insert({
+          order_id: selectedOrder.id,
+          dispatched_quantity: dispatchedQty,
+          dispatch_date: formData.dispatch_date,
+          vehicle_no: formData.vehicle_no || null,
+          driver_name: formData.driver_name || null,
+          transporter: formData.transporter || null,
+          loading_remarks: formData.loading_remarks || null,
+          created_by: user.id,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Get order details with customer info
+      const { data: orderData } = await supabase
+        .from("sales_orders")
+        .select("customer_email, customer_phone")
+        .eq("id", selectedOrder.id)
+        .single();
+
+      // Send notification if customer email or phone exists
+      if (orderData && (orderData.customer_email || orderData.customer_phone)) {
+        try {
+          await supabase.functions.invoke("send-dispatch-notification", {
+            body: {
+              dispatchEntryId: dispatchEntry.id,
+              orderDetails: {
+                order_no: selectedOrder.order_no,
+                product: selectedOrder.product,
+                dispatched_quantity: dispatchedQty,
+              },
+              customerEmail: orderData.customer_email,
+              customerPhone: orderData.customer_phone,
+            },
+          });
+        } catch (notifError) {
+          console.error("Failed to send notification:", notifError);
+          // Don't fail the dispatch if notification fails
+        }
+      }
+
       toast({
         title: "Success",
-        description: "Dispatch entry added successfully",
+        description: "Dispatch entry added and customer notified",
       });
 
       setFormData({
@@ -580,25 +628,52 @@ export default function DispatchManagement() {
                   <th className="text-left p-2">Vehicle</th>
                   <th className="text-left p-2">Driver</th>
                   <th className="text-left p-2">Transporter</th>
+                  <th className="text-left p-2">Notifications</th>
                 </tr>
               </thead>
               <tbody>
-                {dispatchHistory.map((entry) => (
-                  <tr key={entry.id} className="border-b hover:bg-muted/50">
-                    <td className="p-2">
-                      {format(new Date(entry.dispatch_date), "dd MMM yyyy")}
-                    </td>
-                    <td className="p-2">{entry.sales_orders.order_no}</td>
-                    <td className="p-2">{entry.sales_orders.customer_name}</td>
-                    <td className="p-2">{entry.sales_orders.product}</td>
-                    <td className="p-2 text-right">
-                      {entry.dispatched_quantity}
-                    </td>
-                    <td className="p-2">{entry.vehicle_no || "-"}</td>
-                    <td className="p-2">{entry.driver_name || "-"}</td>
-                    <td className="p-2">{entry.transporter || "-"}</td>
-                  </tr>
-                ))}
+                {dispatchHistory.map((entry) => {
+                  const emailNotif = entry.dispatch_notifications?.find(
+                    (n) => n.notification_type === "email"
+                  );
+                  const smsNotif = entry.dispatch_notifications?.find(
+                    (n) => n.notification_type === "sms"
+                  );
+
+                  return (
+                    <tr key={entry.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2">
+                        {format(new Date(entry.dispatch_date), "dd MMM yyyy")}
+                      </td>
+                      <td className="p-2">{entry.sales_orders.order_no}</td>
+                      <td className="p-2">{entry.sales_orders.customer_name}</td>
+                      <td className="p-2">{entry.sales_orders.product}</td>
+                      <td className="p-2 text-right">
+                        {entry.dispatched_quantity}
+                      </td>
+                      <td className="p-2">{entry.vehicle_no || "-"}</td>
+                      <td className="p-2">{entry.driver_name || "-"}</td>
+                      <td className="p-2">{entry.transporter || "-"}</td>
+                      <td className="p-2">
+                        <div className="flex gap-1 flex-wrap">
+                          {emailNotif && (
+                            <Badge variant="outline" className="text-xs">
+                              📧 {emailNotif.status}
+                            </Badge>
+                          )}
+                          {smsNotif && (
+                            <Badge variant="outline" className="text-xs">
+                              📱 {smsNotif.status}
+                            </Badge>
+                          )}
+                          {!emailNotif && !smsNotif && (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
