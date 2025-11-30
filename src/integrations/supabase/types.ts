@@ -348,6 +348,53 @@ export type Database = {
           },
         ]
       }
+      dispatch_notifications: {
+        Row: {
+          created_at: string | null
+          dispatch_entry_id: string
+          error_message: string | null
+          id: string
+          notification_type: string
+          recipient_email: string | null
+          recipient_phone: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dispatch_entry_id: string
+          error_message?: string | null
+          id?: string
+          notification_type: string
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dispatch_entry_id?: string
+          error_message?: string | null
+          id?: string
+          notification_type?: string
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_notifications_dispatch_entry_id_fkey"
+            columns: ["dispatch_entry_id"]
+            isOneToOne: false
+            referencedRelation: "dispatch_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       godowns: {
         Row: {
           address: string | null
@@ -701,7 +748,9 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string | null
+          customer_email: string | null
           customer_name: string
+          customer_phone: string | null
           due_date: string
           id: string
           notes: string | null
@@ -715,7 +764,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          customer_email?: string | null
           customer_name: string
+          customer_phone?: string | null
           due_date: string
           id?: string
           notes?: string | null
@@ -729,7 +780,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           created_by?: string | null
+          customer_email?: string | null
           customer_name?: string
+          customer_phone?: string | null
           due_date?: string
           id?: string
           notes?: string | null
