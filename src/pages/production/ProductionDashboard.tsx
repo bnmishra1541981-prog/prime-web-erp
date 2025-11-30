@@ -53,6 +53,7 @@ interface TeamPerformance {
   name: string;
   production: number;
   orders: number;
+  dispatch: number;
 }
 
 interface DailyProduction {
@@ -63,7 +64,27 @@ interface DailyProduction {
 
 interface MachineUtilization {
   machine: string;
-  usage: number;
+  production: number;
+  dispatch: number;
+  balance: number;
+}
+
+interface OrderSummary {
+  order_no: string;
+  customer_name: string;
+  product: string;
+  ordered: number;
+  produced: number;
+  dispatched: number;
+  balance: number;
+}
+
+interface SizeSummary {
+  size: string;
+  length: string;
+  totalProduction: number;
+  totalDispatch: number;
+  balance: number;
 }
 
 const COLORS = ['#F05134', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
@@ -86,6 +107,8 @@ const ProductionDashboard = () => {
   const [teamPerformance, setTeamPerformance] = useState<TeamPerformance[]>([]);
   const [dailyProduction, setDailyProduction] = useState<DailyProduction[]>([]);
   const [machineUtilization, setMachineUtilization] = useState<MachineUtilization[]>([]);
+  const [orderSummary, setOrderSummary] = useState<OrderSummary[]>([]);
+  const [sizeSummary, setSizeSummary] = useState<SizeSummary[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -183,9 +206,11 @@ const ProductionDashboard = () => {
 
       calculateStats(orders || [], productionData || [], dispatchData || [], teamData?.length || 0, machineData?.length || 0);
       calculateOrderStatus(orders || []);
-      calculateTeamPerformance(productionData || [], orders || []);
+      calculateTeamPerformance(productionData || [], dispatchData || [], orders || []);
       calculateDailyProduction(productionData || [], dispatchData || []);
-      calculateMachineUtilization(productionData || [], machineData || []);
+      calculateMachineUtilization(productionData || [], dispatchData || [], machineData || []);
+      calculateOrderSummary(orders || [], productionData || [], dispatchData || []);
+      calculateSizeSummary(productionData || [], dispatchData || []);
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
@@ -226,26 +251,41 @@ const ProductionDashboard = () => {
     setOrderStatusData(data);
   };
 
-  const calculateTeamPerformance = (production: any[], orders: any[]) => {
-    const teamStats: Record<string, { production: number; orders: Set<string> }> = {};
+  const calculateTeamPerformance = (production: any[], dispatch: any[], orders: any[]) => {
+    const teamStats: Record<string, { production: number; dispatch: number; orders: Set<string> }> = {};
 
     production.forEach(entry => {
       const name = entry.user_roles?.full_name || 'Unknown';
       if (!teamStats[name]) {
-        teamStats[name] = { production: 0, orders: new Set() };
+        teamStats[name] = { production: 0, dispatch: 0, orders: new Set() };
       }
       teamStats[name].production += Number(entry.produced_quantity);
       teamStats[name].orders.add(entry.order_id);
+    });
+
+    dispatch.forEach(entry => {
+      const order = orders.find((o: any) => o.id === entry.order_id);
+      if (order) {
+        production.forEach(prod => {
+          if (prod.order_id === entry.order_id) {
+            const name = prod.user_roles?.full_name || 'Unknown';
+            if (teamStats[name]) {
+              teamStats[name].dispatch += Number(entry.dispatched_quantity);
+            }
+          }
+        });
+      }
     });
 
     const data = Object.entries(teamStats)
       .map(([name, stats]) => ({
         name,
         production: stats.production,
+        dispatch: stats.dispatch,
         orders: stats.orders.size
       }))
       .sort((a, b) => b.production - a.production)
-      .slice(0, 5); // Top 5 performers
+      .slice(0, 5);
 
     setTeamPerformance(data);
   };
@@ -275,21 +315,97 @@ const ProductionDashboard = () => {
     setDailyProduction(data);
   };
 
-  const calculateMachineUtilization = (production: any[], machines: any[]) => {
-    const machineUsage: Record<string, number> = {};
+  const calculateMachineUtilization = (production: any[], dispatch: any[], machines: any[]) => {
+    const machineStats: Record<string, { production: number; dispatch: Set<string> }> = {};
 
     production.forEach(entry => {
       if (entry.machine_id) {
-        machineUsage[entry.machine_id] = (machineUsage[entry.machine_id] || 0) + Number(entry.produced_quantity);
+        if (!machineStats[entry.machine_id]) {
+          machineStats[entry.machine_id] = { production: 0, dispatch: new Set() };
+        }
+        machineStats[entry.machine_id].production += Number(entry.produced_quantity);
       }
     });
 
-    const data = machines.map(machine => ({
-      machine: machine.name,
-      usage: machineUsage[machine.id] || 0
-    })).sort((a, b) => b.usage - a.usage);
+    dispatch.forEach(entry => {
+      production.forEach(prod => {
+        if (prod.order_id === entry.order_id && prod.machine_id) {
+          machineStats[prod.machine_id].dispatch.add(entry.id);
+        }
+      });
+    });
+
+    const data = machines.map(machine => {
+      const stats = machineStats[machine.id] || { production: 0, dispatch: new Set() };
+      const dispatchCount = Array.from(stats.dispatch).reduce((sum, _) => sum + 1, 0);
+      return {
+        machine: machine.name,
+        production: stats.production,
+        dispatch: dispatchCount,
+        balance: stats.production - dispatchCount
+      };
+    }).sort((a, b) => b.production - a.production);
 
     setMachineUtilization(data);
+  };
+
+  const calculateOrderSummary = (orders: any[], production: any[], dispatch: any[]) => {
+    const data = orders.map(order => {
+      const produced = production
+        .filter(p => p.order_id === order.id)
+        .reduce((sum, p) => sum + Number(p.produced_quantity), 0);
+      
+      const dispatched = dispatch
+        .filter(d => d.order_id === order.id)
+        .reduce((sum, d) => sum + Number(d.dispatched_quantity), 0);
+
+      return {
+        order_no: order.order_no,
+        customer_name: order.customer_name,
+        product: order.product,
+        ordered: Number(order.ordered_quantity),
+        produced,
+        dispatched,
+        balance: Number(order.ordered_quantity) - produced - dispatched
+      };
+    }).sort((a, b) => b.balance - a.balance);
+
+    setOrderSummary(data);
+  };
+
+  const calculateSizeSummary = (production: any[], dispatch: any[]) => {
+    const sizeStats: Record<string, { production: number; dispatch: number; length: string }> = {};
+
+    production.forEach(entry => {
+      const key = entry.size || 'Unknown Size';
+      if (!sizeStats[key]) {
+        sizeStats[key] = { production: 0, dispatch: 0, length: entry.length_feet || 'N/A' };
+      }
+      sizeStats[key].production += Number(entry.produced_quantity);
+    });
+
+    dispatch.forEach(entry => {
+      production.forEach(prod => {
+        if (prod.order_id === entry.order_id) {
+          const key = prod.size || 'Unknown Size';
+          if (sizeStats[key]) {
+            sizeStats[key].dispatch += Number(entry.dispatched_quantity) / production.filter(p => p.order_id === entry.order_id).length;
+          }
+        }
+      });
+    });
+
+    const data = Object.entries(sizeStats)
+      .map(([size, stats]) => ({
+        size,
+        length: stats.length,
+        totalProduction: stats.production,
+        totalDispatch: stats.dispatch,
+        balance: stats.production - stats.dispatch
+      }))
+      .sort((a, b) => b.totalProduction - a.totalProduction);
+
+    setSizeSummary(data);
   };
 
   if (loading) {
@@ -486,8 +602,9 @@ const ProductionDashboard = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="production" fill="#F05134" name="Production Qty" />
-                    <Bar dataKey="orders" fill="#3b82f6" name="Orders Handled" />
+                    <Bar dataKey="production" fill="#F05134" name="Production" />
+                    <Bar dataKey="dispatch" fill="#10b981" name="Dispatch" />
+                    <Bar dataKey="orders" fill="#3b82f6" name="Orders" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -512,7 +629,9 @@ const ProductionDashboard = () => {
                     <XAxis type="number" />
                     <YAxis dataKey="machine" type="category" width={100} />
                     <Tooltip />
-                    <Bar dataKey="usage" fill="#10b981" name="Production Output" />
+                    <Bar dataKey="production" fill="#F05134" name="Production" />
+                    <Bar dataKey="dispatch" fill="#10b981" name="Dispatch" />
+                    <Bar dataKey="balance" fill="#f59e0b" name="Balance" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -550,6 +669,84 @@ const ProductionDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Order Summary Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Order-wise Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">Order No</th>
+                    <th className="text-left py-2 px-2">Customer</th>
+                    <th className="text-left py-2 px-2">Product</th>
+                    <th className="text-right py-2 px-2">Ordered</th>
+                    <th className="text-right py-2 px-2">Produced</th>
+                    <th className="text-right py-2 px-2">Dispatched</th>
+                    <th className="text-right py-2 px-2">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderSummary.map((order, idx) => (
+                    <tr key={idx} className="border-b hover:bg-muted/50">
+                      <td className="py-2 px-2 font-medium">{order.order_no}</td>
+                      <td className="py-2 px-2">{order.customer_name}</td>
+                      <td className="py-2 px-2">{order.product}</td>
+                      <td className="py-2 px-2 text-right">{order.ordered}</td>
+                      <td className="py-2 px-2 text-right text-blue-600">{order.produced}</td>
+                      <td className="py-2 px-2 text-right text-green-600">{order.dispatched}</td>
+                      <td className="py-2 px-2 text-right">
+                        <Badge variant={order.balance > 0 ? "destructive" : "default"}>
+                          {order.balance}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Size-wise Summary Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Size & Length-wise Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">Size</th>
+                    <th className="text-left py-2 px-2">Length (ft)</th>
+                    <th className="text-right py-2 px-2">Total Production</th>
+                    <th className="text-right py-2 px-2">Total Dispatch</th>
+                    <th className="text-right py-2 px-2">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sizeSummary.map((item, idx) => (
+                    <tr key={idx} className="border-b hover:bg-muted/50">
+                      <td className="py-2 px-2 font-medium">{item.size}</td>
+                      <td className="py-2 px-2">{item.length}</td>
+                      <td className="py-2 px-2 text-right text-blue-600">{item.totalProduction}</td>
+                      <td className="py-2 px-2 text-right text-green-600">{item.totalDispatch}</td>
+                      <td className="py-2 px-2 text-right">
+                        <Badge variant={item.balance > 0 ? "destructive" : "default"}>
+                          {item.balance}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

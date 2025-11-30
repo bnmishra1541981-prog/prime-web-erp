@@ -42,7 +42,7 @@ const menuItems = [
     subItems: [
       { title: 'Dashboard', url: '/production/dashboard', icon: TrendingUp },
       { title: 'Production Entry', url: '/production/entry', icon: ClipboardList },
-      { title: 'My Orders', url: '/production/orders', icon: Package },
+      { title: 'My Orders', url: '/production/my-orders', icon: Package },
       { title: 'Manage Orders', url: '/production/manage-orders', icon: FileText },
       { title: 'Machines', url: '/production/machines', icon: Wrench },
       { title: 'Dispatch', url: '/production/dispatch', icon: Truck },
