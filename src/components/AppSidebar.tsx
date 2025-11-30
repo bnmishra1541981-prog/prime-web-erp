@@ -27,6 +27,7 @@ import {
   Bell,
   Truck,
   BarChart3,
+  ClipboardList,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
@@ -40,6 +41,7 @@ const menuItems = [
     icon: Package,
     subItems: [
       { title: 'Dashboard', url: '/production/dashboard', icon: TrendingUp },
+      { title: 'Production Entry', url: '/production/entry', icon: ClipboardList },
       { title: 'My Orders', url: '/production/orders', icon: Package },
       { title: 'Manage Orders', url: '/production/manage-orders', icon: FileText },
       { title: 'Machines', url: '/production/machines', icon: Wrench },
