@@ -33,7 +33,14 @@ import solviserLogo from '@/assets/solviser-logo.png';
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Notifications', url: '/notifications', icon: Bell },
-  { title: 'Production Orders', url: '/production/orders', icon: Package },
+  {
+    title: 'Production',
+    icon: Package,
+    subItems: [
+      { title: 'My Orders', url: '/production/orders', icon: Package },
+      { title: 'User Management', url: '/production/users', icon: Users },
+    ],
+  },
   {
     title: 'Masters',
     icon: Building2,
