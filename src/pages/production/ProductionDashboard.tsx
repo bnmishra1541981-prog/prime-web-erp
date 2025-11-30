@@ -177,9 +177,22 @@ const ProductionDashboard = () => {
       // Fetch production entries
       const { data: productionData, error: prodError } = await supabase
         .from('production_entries')
-        .select('*, user_roles!production_entries_created_by_fkey(full_name)');
+        .select('*');
 
       if (prodError) throw prodError;
+
+      // Fetch user details for production entries
+      const userIds = [...new Set(productionData?.map(p => p.created_by).filter(Boolean) || [])];
+      const { data: usersData } = await supabase
+        .from('user_roles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+
+      // Map user data to production entries
+      const productionWithUsers = productionData?.map(entry => ({
+        ...entry,
+        user_roles: usersData?.find(u => u.user_id === entry.created_by)
+      })) || [];
 
       // Fetch dispatch entries
       const { data: dispatchData, error: dispatchError } = await supabase
@@ -204,13 +217,13 @@ const ProductionDashboard = () => {
 
       if (machineError) throw machineError;
 
-      calculateStats(orders || [], productionData || [], dispatchData || [], teamData?.length || 0, machineData?.length || 0);
+      calculateStats(orders || [], productionWithUsers || [], dispatchData || [], teamData?.length || 0, machineData?.length || 0);
       calculateOrderStatus(orders || []);
-      calculateTeamPerformance(productionData || [], dispatchData || [], orders || []);
-      calculateDailyProduction(productionData || [], dispatchData || []);
-      calculateMachineUtilization(productionData || [], dispatchData || [], machineData || []);
-      calculateOrderSummary(orders || [], productionData || [], dispatchData || []);
-      calculateSizeSummary(productionData || [], dispatchData || []);
+      calculateTeamPerformance(productionWithUsers || [], dispatchData || [], orders || []);
+      calculateDailyProduction(productionWithUsers || [], dispatchData || []);
+      calculateMachineUtilization(productionWithUsers || [], dispatchData || [], machineData || []);
+      calculateOrderSummary(orders || [], productionWithUsers || [], dispatchData || []);
+      calculateSizeSummary(productionWithUsers || [], dispatchData || []);
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
