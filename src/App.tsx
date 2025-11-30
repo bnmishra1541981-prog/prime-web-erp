@@ -23,6 +23,8 @@ import InvoiceDemo from "./pages/InvoiceDemo";
 import Notifications from "./pages/Notifications";
 import ProductionOrders from "./pages/production/ProductionOrders";
 import OrderDetail from "./pages/production/OrderDetail";
+import UserManagement from "./pages/production/UserManagement";
+import OrderAssignment from "./pages/production/OrderAssignment";
 import StockGroups from "./pages/masters/StockGroups";
 import StockItems from "./pages/masters/StockItems";
 import Godowns from "./pages/masters/Godowns";
@@ -193,6 +195,22 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <OrderDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/users"
+        element={
+          <ProtectedRoute>
+            <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/assign-orders/:userId"
+        element={
+          <ProtectedRoute>
+            <OrderAssignment />
           </ProtectedRoute>
         }
       />
