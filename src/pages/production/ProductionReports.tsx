@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { BarChart3, Package, Settings, Calendar, Download } from 'lucide-react';
+import { BarChart3, Package, Settings, Calendar, Download, Printer } from 'lucide-react';
 import { format } from 'date-fns';
+import { ProductionReportPrint } from '@/components/reports/ProductionReportPrint';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface MachineProduction {
   machine_name: string;
@@ -36,6 +39,8 @@ interface OrderProduction {
 }
 
 const ProductionReports = () => {
+  const printRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<'machine' | 'size' | 'order'>('machine');
   const [dateFrom, setDateFrom] = useState(
     format(new Date(new Date().setDate(new Date().getDate() - 30)), 'yyyy-MM-dd')
   );
@@ -185,9 +190,56 @@ const ProductionReports = () => {
     setOrderData(orderReports);
   };
 
-  const handleExport = (type: string) => {
-    toast.success(`Exporting ${type} report...`);
-    // Export functionality can be implemented here
+  const handleExport = async (type: 'machine' | 'size' | 'order') => {
+    try {
+      toast.loading(`Generating ${type} report PDF...`);
+      
+      if (!printRef.current) return;
+
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: type === 'order' ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const imgWidth = type === 'order' ? 280 : 190;
+      const pageHeight = type === 'order' ? 190 : 277;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const fileName = `production-report-${type}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      pdf.save(fileName);
+      
+      toast.dismiss();
+      toast.success('PDF downloaded successfully!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.dismiss();
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+    toast.success('Opening print dialog...');
   };
 
   if (loading) {
@@ -203,6 +255,19 @@ const ProductionReports = () => {
 
   return (
     <div className="min-h-screen bg-background p-4 pb-20">
+      {/* Hidden Print Component */}
+      <div className="hidden">
+        <ProductionReportPrint
+          ref={printRef}
+          reportType={activeTab}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          machineData={machineData}
+          sizeData={sizeData}
+          orderData={orderData}
+        />
+      </div>
+
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -253,7 +318,7 @@ const ProductionReports = () => {
         </Card>
 
         {/* Reports Tabs */}
-        <Tabs defaultValue="machine" className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="machine">Machine-wise</TabsTrigger>
             <TabsTrigger value="size">Size-wise</TabsTrigger>
@@ -269,14 +334,26 @@ const ProductionReports = () => {
                     <Settings className="h-5 w-5" />
                     Machine-wise Production Summary
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleExport('machine')}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrint}
+                      className="no-print"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExport('machine')}
+                      className="no-print"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -368,14 +445,26 @@ const ProductionReports = () => {
                     <Package className="h-5 w-5" />
                     Size-wise Production Summary
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleExport('size')}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrint}
+                      className="no-print"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExport('size')}
+                      className="no-print"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -436,14 +525,26 @@ const ProductionReports = () => {
                     <Package className="h-5 w-5" />
                     Order-wise Production Summary
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleExport('order')}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrint}
+                      className="no-print"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExport('order')}
+                      className="no-print"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
