@@ -76,26 +76,50 @@ const ProductionEntry = () => {
     try {
       setLoading(true);
       
-      // Fetch assigned orders
-      const { data: assignedOrders, error: ordersError } = await supabase
-        .from('order_assignments')
-        .select('order_id')
-        .eq('assigned_to', user?.id);
+      // Check user role
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user?.id)
+        .single();
 
-      if (ordersError) throw ordersError;
+      let ordersData = [];
 
-      const orderIds = assignedOrders?.map(a => a.order_id) || [];
+      // If owner or supervisor, show all orders
+      if (userRole?.role === 'owner' || userRole?.role === 'supervisor') {
+        const { data, error } = await supabase
+          .from('sales_orders')
+          .select('*')
+          .in('status', ['pending', 'in_production', 'partially_dispatched'])
+          .order('due_date', { ascending: true });
 
-      // Fetch order details
-      const { data: ordersData, error: ordersDataError } = await supabase
-        .from('sales_orders')
-        .select('*')
-        .in('id', orderIds)
-        .in('status', ['pending', 'in_production', 'partially_dispatched'])
-        .order('due_date', { ascending: true });
+        if (error) throw error;
+        ordersData = data || [];
+      } else {
+        // For production users, show only assigned orders
+        const { data: assignedOrders, error: assignError } = await supabase
+          .from('order_assignments')
+          .select('order_id')
+          .eq('assigned_to', user?.id);
 
-      if (ordersDataError) throw ordersDataError;
-      setOrders(ordersData || []);
+        if (assignError) throw assignError;
+
+        const orderIds = assignedOrders?.map(a => a.order_id) || [];
+
+        if (orderIds.length > 0) {
+          const { data, error } = await supabase
+            .from('sales_orders')
+            .select('*')
+            .in('id', orderIds)
+            .in('status', ['pending', 'in_production', 'partially_dispatched'])
+            .order('due_date', { ascending: true });
+
+          if (error) throw error;
+          ordersData = data || [];
+        }
+      }
+
+      setOrders(ordersData);
 
       // Fetch machines
       const { data: machinesData, error: machinesError } = await supabase
@@ -283,11 +307,15 @@ const ProductionEntry = () => {
                       <SelectValue placeholder="Select order" />
                     </SelectTrigger>
                     <SelectContent>
-                      {orders.map((order) => (
-                        <SelectItem key={order.id} value={order.id}>
-                          {order.order_no} - {order.customer_name} ({order.product})
-                        </SelectItem>
-                      ))}
+                      {orders.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">No orders available</div>
+                      ) : (
+                        orders.map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            {order.order_no} - {order.customer_name} ({order.product})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
