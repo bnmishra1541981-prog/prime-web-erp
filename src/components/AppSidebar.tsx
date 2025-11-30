@@ -38,6 +38,7 @@ const menuItems = [
     icon: Package,
     subItems: [
       { title: 'My Orders', url: '/production/orders', icon: Package },
+      { title: 'Manage Orders', url: '/production/manage-orders', icon: FileText },
       { title: 'User Management', url: '/production/users', icon: Users },
     ],
   },
