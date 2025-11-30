@@ -55,6 +55,8 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -278,6 +280,69 @@ const OrderManagement = () => {
     });
   };
 
+  const handleEditAssignment = async (order: Order) => {
+    setSelectedOrder(order);
+    
+    // Fetch current assignments for this order
+    const { data: assignments, error } = await supabase
+      .from('order_assignments')
+      .select('assigned_to')
+      .eq('order_id', order.id);
+    
+    if (error) {
+      console.error('Error fetching assignments:', error);
+      toast.error('Failed to load current assignments');
+      return;
+    }
+    
+    const currentMembers = new Set(assignments?.map(a => a.assigned_to) || []);
+    setSelectedMembers(currentMembers);
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleUpdateAssignment = async () => {
+    if (!selectedOrder) return;
+    
+    if (selectedMembers.size === 0) {
+      toast.error('Please assign at least one team member');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Delete existing assignments
+      const { error: deleteError } = await supabase
+        .from('order_assignments')
+        .delete()
+        .eq('order_id', selectedOrder.id);
+
+      if (deleteError) throw deleteError;
+
+      // Create new assignments
+      const assignments = Array.from(selectedMembers).map(memberId => ({
+        order_id: selectedOrder.id,
+        assigned_to: memberId
+      }));
+
+      const { error: insertError } = await supabase
+        .from('order_assignments')
+        .insert(assignments);
+
+      if (insertError) throw insertError;
+
+      toast.success('Team assignment updated successfully');
+      setIsAssignDialogOpen(false);
+      setSelectedOrder(null);
+      setSelectedMembers(new Set());
+      fetchOrders();
+    } catch (error: any) {
+      console.error('Error updating assignment:', error);
+      toast.error('Failed to update team assignment');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -485,6 +550,78 @@ const OrderManagement = () => {
           </Dialog>
         </div>
 
+        {/* Edit Assignment Dialog */}
+        <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Team Assignment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {selectedOrder && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm font-medium">{selectedOrder.order_no}</p>
+                  <p className="text-xs text-muted-foreground">{selectedOrder.customer_name}</p>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label>Assign Team Members *</Label>
+                <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
+                  {teamMembers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No team members available
+                    </p>
+                  ) : (
+                    teamMembers.map((member) => (
+                      <div key={member.user_id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-${member.user_id}`}
+                          checked={selectedMembers.has(member.user_id)}
+                          onCheckedChange={() => toggleMember(member.user_id)}
+                        />
+                        <label
+                          htmlFor={`edit-${member.user_id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                        >
+                          {member.full_name}
+                          <span className="text-muted-foreground ml-2">
+                            ({member.role}
+                            {member.department && ` - ${member.department}`})
+                          </span>
+                        </label>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedMembers.size} member{selectedMembers.size !== 1 ? 's' : ''} selected
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAssignDialogOpen(false);
+                    setSelectedOrder(null);
+                    setSelectedMembers(new Set());
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdateAssignment}
+                  disabled={submitting || selectedMembers.size === 0}
+                  className="flex-1"
+                >
+                  {submitting ? 'Updating...' : 'Update'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Orders List */}
         {orders.length === 0 ? (
           <Card>
@@ -549,21 +686,31 @@ const OrderManagement = () => {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t">
+                   <div className="flex items-center justify-between pt-2 border-t">
                     <Badge className={getStatusColor(order.status)}>
                       {order.status.split('_').map(w => 
                         w.charAt(0).toUpperCase() + w.slice(1)
                       ).join(' ')}
                     </Badge>
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(order.id, order.order_no)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditAssignment(order)}
+                        className="text-primary hover:text-primary"
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(order.id, order.order_no)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {order.notes && (
