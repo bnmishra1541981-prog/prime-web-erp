@@ -59,17 +59,29 @@ const reportOptions: ReportOption[] = [
   { id: 'itr_info', name: 'ITR Information', description: 'Income tax return history', icon: <FileCheck className="h-4 w-4" />, category: 'Financial' },
   { id: 'charges', name: 'Charges', description: 'Registered charges on assets', icon: <AlertCircle className="h-4 w-4" />, category: 'Financial' },
   { id: 'litigation', name: 'Litigation', description: 'Court cases & legal matters', icon: <Scale className="h-4 w-4" />, category: 'Legal' },
+  { id: 'court_cases', name: 'Court Cases', description: 'Detailed court case history', icon: <Scale className="h-4 w-4" />, category: 'Legal' },
   { id: 'commercial_cibil', name: 'Commercial CIBIL', description: 'Business credit score', icon: <CreditCard className="h-4 w-4" />, category: 'Credit' },
   { id: 'individual_cibil', name: 'Individual CIBIL', description: 'Director credit scores', icon: <CreditCard className="h-4 w-4" />, category: 'Credit' },
+  { id: 'bank_defaults', name: 'Bank Defaults', description: 'Bank loan defaults & NPA status', icon: <AlertCircle className="h-4 w-4" />, category: 'Credit' },
+  { id: 'emi_details', name: 'EMI Delay & Unpaid', description: 'EMI delays and unpaid amounts', icon: <AlertCircle className="h-4 w-4" />, category: 'Credit' },
   { id: 'aadhaar', name: 'Aadhaar Verification', description: 'Aadhaar verification of directors', icon: <Users className="h-4 w-4" />, category: 'Identity' },
   { id: 'land_records', name: 'Land Records', description: 'Property ownership details', icon: <MapPin className="h-4 w-4" />, category: 'Assets' },
+  { id: 'immovable_property', name: 'Immovable Property', description: 'Immovable property details', icon: <MapPin className="h-4 w-4" />, category: 'Assets' },
+  { id: 'vehicles', name: 'Vehicles', description: 'Vehicle ownership details', icon: <Building2 className="h-4 w-4" />, category: 'Assets' },
+  { id: 'assets', name: 'Assets', description: 'All company assets', icon: <Building2 className="h-4 w-4" />, category: 'Assets' },
+  { id: 'party_receivables', name: 'Party Receivables', description: 'Amount receivable from parties', icon: <CreditCard className="h-4 w-4" />, category: 'Financial' },
+  { id: 'party_payables', name: 'Party Payables', description: 'Amount payable to parties', icon: <CreditCard className="h-4 w-4" />, category: 'Financial' },
   { id: 'mobile_verification', name: 'Mobile Verification', description: 'Contact number verification', icon: <Phone className="h-4 w-4" />, category: 'Contact' },
   { id: 'director_pan', name: 'Director PAN', description: 'Directors PAN verification', icon: <CreditCard className="h-4 w-4" />, category: 'Identity' },
   { id: 'tan', name: 'TAN Verification', description: 'Tax deduction account number', icon: <FileText className="h-4 w-4" />, category: 'Compliance' },
+  { id: 'udyam', name: 'Udyam Details', description: 'Udyam registration details', icon: <Building2 className="h-4 w-4" />, category: 'Compliance' },
   { id: 'contact_email', name: 'Contact Email', description: 'Email verification', icon: <Mail className="h-4 w-4" />, category: 'Contact' },
   { id: 'registered_address', name: 'Registered Address', description: 'Address verification', icon: <MapPin className="h-4 w-4" />, category: 'Contact' },
   { id: 'associated_companies', name: 'Associated Companies', description: 'Related business entities', icon: <Building2 className="h-4 w-4" />, category: 'Company' },
   { id: 'directors', name: 'All Company Directors', description: 'Director details & history', icon: <Users className="h-4 w-4" />, category: 'Company' },
+  { id: 'blocklist', name: 'Blocklist', description: 'Blocklist & blacklist status', icon: <AlertCircle className="h-4 w-4" />, category: 'Risk' },
+  { id: 'contract_defaults', name: 'Contract Defaults', description: 'Contract default history', icon: <AlertCircle className="h-4 w-4" />, category: 'Risk' },
+  { id: 'disputes', name: 'Disputes & Delays', description: 'Disputes and delay reports', icon: <AlertCircle className="h-4 w-4" />, category: 'Risk' },
 ];
 
 const MSMECreditReport = () => {
@@ -315,6 +327,15 @@ const MSMECreditReport = () => {
         resolvedCases: 1,
         caseDetails: [{ court: 'NCLT Mumbai', type: 'Civil', status: 'Resolved', year: '2021' }]
       },
+      court_cases: {
+        totalCases: 3,
+        pendingCases: 1,
+        disposedCases: 2,
+        caseDetails: [
+          { caseNumber: 'CS/123/2022', court: 'High Court Mumbai', petitioner: 'ABC Corp', respondent: company?.legal_name || 'Company', caseType: 'Civil', status: 'Pending', filingDate: '2022-05-10', nextHearing: '2025-01-15' },
+          { caseNumber: 'CC/456/2021', court: 'District Court', petitioner: company?.legal_name || 'Company', respondent: 'XYZ Ltd', caseType: 'Recovery', status: 'Disposed', filingDate: '2021-03-20', disposalDate: '2023-08-15' }
+        ]
+      },
       commercial_cibil: {
         score: 720,
         rating: 'Good',
@@ -327,6 +348,25 @@ const MSMECreditReport = () => {
           { name: 'Director 2', score: 680, status: 'Good' }
         ]
       },
+      bank_defaults: {
+        totalDefaults: 1,
+        npaStatus: 'No',
+        wilfulDefaulter: 'No',
+        defaults: [
+          { bank: 'PNB Bank', loanType: 'Term Loan', sanctionedAmount: '₹ 30,00,000', outstandingAmount: '₹ 5,00,000', defaultDate: '2021-06-15', status: 'Settled', settlementDate: '2022-01-20' }
+        ]
+      },
+      emi_details: {
+        totalLoans: 3,
+        activeLoans: 2,
+        totalEmiDelays: 5,
+        unpaidEmis: 0,
+        loanDetails: [
+          { lender: 'HDFC Bank', loanType: 'Term Loan', emiAmount: '₹ 1,25,000', totalEmis: 60, paidEmis: 35, delayedEmis: 3, unpaidEmis: 0, status: 'Active' },
+          { lender: 'SBI', loanType: 'Working Capital', emiAmount: '₹ 85,000', totalEmis: 48, paidEmis: 24, delayedEmis: 2, unpaidEmis: 0, status: 'Active' },
+          { lender: 'Axis Bank', loanType: 'Vehicle Loan', emiAmount: '₹ 45,000', totalEmis: 36, paidEmis: 36, delayedEmis: 0, unpaidEmis: 0, status: 'Closed' }
+        ]
+      },
       aadhaar: {
         verified: true,
         directorsVerified: 2,
@@ -336,6 +376,62 @@ const MSMECreditReport = () => {
         propertiesOwned: 3,
         totalValue: '₹ 5,00,00,000',
         encumberedProperties: 1
+      },
+      immovable_property: {
+        totalProperties: 4,
+        totalValue: '₹ 8,50,00,000',
+        properties: [
+          { type: 'Commercial Building', location: 'Mumbai', area: '5000 sq ft', value: '₹ 3,50,00,000', ownership: '100%', mortgaged: 'Yes', mortgageHolder: 'SBI Bank' },
+          { type: 'Factory Land', location: 'Pune', area: '2 Acres', value: '₹ 2,00,00,000', ownership: '100%', mortgaged: 'No', mortgageHolder: '-' },
+          { type: 'Warehouse', location: 'Nashik', area: '10000 sq ft', value: '₹ 1,50,00,000', ownership: '100%', mortgaged: 'No', mortgageHolder: '-' },
+          { type: 'Office Space', location: 'Thane', area: '2500 sq ft', value: '₹ 1,50,00,000', ownership: '50%', mortgaged: 'No', mortgageHolder: '-' }
+        ]
+      },
+      vehicles: {
+        totalVehicles: 5,
+        totalValue: '₹ 45,00,000',
+        vehicles: [
+          { type: 'Commercial Truck', registrationNo: 'MH-12-AB-1234', make: 'Tata', model: 'Prima', year: '2021', value: '₹ 18,00,000', financed: 'Yes', financier: 'HDFC Bank' },
+          { type: 'Commercial Truck', registrationNo: 'MH-12-CD-5678', make: 'Ashok Leyland', model: '3718', year: '2020', value: '₹ 15,00,000', financed: 'No', financier: '-' },
+          { type: 'Car', registrationNo: 'MH-01-XY-9999', make: 'Toyota', model: 'Fortuner', year: '2022', value: '₹ 8,00,000', financed: 'No', financier: '-' },
+          { type: 'Pickup Van', registrationNo: 'MH-12-EF-4321', make: 'Mahindra', model: 'Bolero', year: '2019', value: '₹ 4,00,000', financed: 'No', financier: '-' }
+        ]
+      },
+      assets: {
+        totalAssets: '₹ 12,50,00,000',
+        fixedAssets: '₹ 9,00,00,000',
+        currentAssets: '₹ 3,50,00,000',
+        assetBreakdown: [
+          { category: 'Land & Building', value: '₹ 5,50,00,000', percentage: '44%' },
+          { category: 'Plant & Machinery', value: '₹ 2,50,00,000', percentage: '20%' },
+          { category: 'Vehicles', value: '₹ 45,00,000', percentage: '3.6%' },
+          { category: 'Furniture & Fixtures', value: '₹ 55,00,000', percentage: '4.4%' },
+          { category: 'Inventory', value: '₹ 1,80,00,000', percentage: '14.4%' },
+          { category: 'Cash & Bank', value: '₹ 85,00,000', percentage: '6.8%' },
+          { category: 'Receivables', value: '₹ 85,00,000', percentage: '6.8%' }
+        ]
+      },
+      party_receivables: {
+        totalReceivables: '₹ 85,00,000',
+        overdue: '₹ 25,00,000',
+        parties: [
+          { partyName: 'Alpha Industries Pvt Ltd', gstin: '27AABCA1234B1ZC', totalAmount: '₹ 25,00,000', dueDate: '2024-10-15', overduedays: 45, status: 'Overdue' },
+          { partyName: 'Beta Corp', gstin: '24AABCB5678C1ZD', totalAmount: '₹ 18,00,000', dueDate: '2024-11-30', overduedays: 0, status: 'Due' },
+          { partyName: 'Gamma Traders', gstin: '29AABCG9012D1ZE', totalAmount: '₹ 15,00,000', dueDate: '2024-12-15', overduedays: 0, status: 'Upcoming' },
+          { partyName: 'Delta Enterprises', gstin: '33AABCD3456E1ZF', totalAmount: '₹ 12,00,000', dueDate: '2025-01-10', overduedays: 0, status: 'Upcoming' },
+          { partyName: 'Epsilon Solutions', gstin: '07AABCE7890F1ZG', totalAmount: '₹ 15,00,000', dueDate: '2025-01-25', overduedays: 0, status: 'Upcoming' }
+        ]
+      },
+      party_payables: {
+        totalPayables: '₹ 65,00,000',
+        overdue: '₹ 10,00,000',
+        parties: [
+          { partyName: 'Raw Material Suppliers Ltd', gstin: '27AABCR1111A1ZH', totalAmount: '₹ 20,00,000', dueDate: '2024-11-01', overduedays: 30, status: 'Overdue' },
+          { partyName: 'Machinery Parts Co', gstin: '24AABCM2222B1ZI', totalAmount: '₹ 15,00,000', dueDate: '2024-12-10', overduedays: 0, status: 'Due' },
+          { partyName: 'Packaging Solutions', gstin: '29AABCP3333C1ZJ', totalAmount: '₹ 12,00,000', dueDate: '2024-12-20', overduedays: 0, status: 'Due' },
+          { partyName: 'Transport Services', gstin: '33AABCT4444D1ZK', totalAmount: '₹ 8,00,000', dueDate: '2025-01-05', overduedays: 0, status: 'Upcoming' },
+          { partyName: 'Utility Providers', gstin: '07AABCU5555E1ZL', totalAmount: '₹ 10,00,000', dueDate: '2025-01-15', overduedays: 0, status: 'Upcoming' }
+        ]
       },
       mobile_verification: {
         primaryMobile: '+91 98XXXXXXXX',
@@ -352,6 +448,19 @@ const MSMECreditReport = () => {
         tanNumber: 'DELX00000X',
         status: 'Active',
         lastTdsFilingDate: '2024-09-30'
+      },
+      udyam: {
+        udyamNumber: 'UDYAM-MH-01-0012345',
+        registrationDate: '2021-07-15',
+        enterpriseType: 'Medium',
+        majorActivity: 'Manufacturing',
+        nicCode: '25999',
+        nicDescription: 'Manufacture of other fabricated metal products n.e.c.',
+        investmentInPlant: '₹ 8,50,00,000',
+        turnover: '₹ 45,00,00,000',
+        district: company?.district || 'Mumbai',
+        state: company?.state || 'Maharashtra',
+        status: 'Active'
       },
       contact_email: {
         primaryEmail: 'contact@company.com',
@@ -379,6 +488,41 @@ const MSMECreditReport = () => {
         directors: [
           { din: '00000001', name: 'Director 1', designation: 'Managing Director', appointmentDate: '2018-04-01' },
           { din: '00000002', name: 'Director 2', designation: 'Director', appointmentDate: '2019-06-15' }
+        ]
+      },
+      blocklist: {
+        isBlocklisted: false,
+        isBlacklisted: false,
+        checkSources: [
+          { source: 'RBI Defaulter List', status: 'Not Found', checkedOn: '2024-11-20' },
+          { source: 'CIBIL Wilful Defaulter', status: 'Not Found', checkedOn: '2024-11-20' },
+          { source: 'Government Blacklist', status: 'Not Found', checkedOn: '2024-11-20' },
+          { source: 'SFIO Investigation', status: 'Not Found', checkedOn: '2024-11-20' },
+          { source: 'ED Investigation', status: 'Not Found', checkedOn: '2024-11-20' }
+        ]
+      },
+      contract_defaults: {
+        totalContracts: 15,
+        completedContracts: 13,
+        defaultedContracts: 1,
+        ongoingContracts: 1,
+        defaults: [
+          { contractWith: 'Government Project XYZ', contractValue: '₹ 1,20,00,000', defaultAmount: '₹ 15,00,000', defaultDate: '2022-08-15', reason: 'Quality Issues', status: 'Settled', settlementDate: '2023-02-20' }
+        ]
+      },
+      disputes: {
+        totalDisputes: 2,
+        pendingDisputes: 1,
+        resolvedDisputes: 1,
+        totalDelays: 3,
+        disputes: [
+          { disputeWith: 'Vendor ABC', type: 'Payment Dispute', amount: '₹ 8,00,000', filingDate: '2024-03-15', status: 'Pending', description: 'Quality of goods delivered was substandard' },
+          { disputeWith: 'Customer DEF', type: 'Delivery Dispute', amount: '₹ 5,00,000', filingDate: '2023-06-20', status: 'Resolved', description: 'Delay in delivery due to logistics issues', resolutionDate: '2023-11-10' }
+        ],
+        delays: [
+          { project: 'Order #12345', expectedDate: '2024-08-15', actualDate: '2024-09-01', delayDays: 17, reason: 'Raw material shortage' },
+          { project: 'Order #12678', expectedDate: '2024-10-01', actualDate: '2024-10-15', delayDays: 14, reason: 'Labor issues' },
+          { project: 'Order #12890', expectedDate: '2024-11-10', actualDate: '2024-11-20', delayDays: 10, reason: 'Weather conditions' }
         ]
       }
     };
