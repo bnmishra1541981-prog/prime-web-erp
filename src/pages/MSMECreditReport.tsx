@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useGstinLookup, GstinData } from '@/hooks/useGstinLookup';
+import jsPDF from 'jspdf';
 import { 
   Search, 
   FileText, 
@@ -240,6 +241,284 @@ const MSMECreditReport = () => {
     return mockData[reportId] || {};
   };
 
+  const exportToPDF = () => {
+    if (!generatedReport || !companyData) return;
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPos = margin;
+
+    const addNewPageIfNeeded = (requiredHeight: number) => {
+      if (yPos + requiredHeight > pageHeight - margin) {
+        pdf.addPage();
+        yPos = margin;
+        return true;
+      }
+      return false;
+    };
+
+    const drawHeader = () => {
+      // Header background
+      pdf.setFillColor(33, 37, 41);
+      pdf.rect(0, 0, pageWidth, 40, 'F');
+
+      // Company name
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(18);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('MSME MASTER CREDIT REPORT', pageWidth / 2, 15, { align: 'center' });
+
+      // Company details
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(companyData?.legal_name || companyData?.name || 'Company', pageWidth / 2, 25, { align: 'center' });
+
+      pdf.setFontSize(10);
+      pdf.text(`GSTIN: ${companyData?.gstin || 'N/A'}`, pageWidth / 2, 33, { align: 'center' });
+
+      yPos = 50;
+    };
+
+    const drawSectionHeader = (title: string) => {
+      addNewPageIfNeeded(15);
+      pdf.setFillColor(59, 130, 246);
+      pdf.rect(margin, yPos, pageWidth - margin * 2, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(title.toUpperCase(), margin + 3, yPos + 5.5);
+      yPos += 12;
+      pdf.setTextColor(0, 0, 0);
+    };
+
+    const drawKeyValue = (key: string, value: string, indent = 0) => {
+      addNewPageIfNeeded(6);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(key + ':', margin + indent, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(0, 0, 0);
+      const valueX = margin + indent + pdf.getTextWidth(key + ': ') + 2;
+      pdf.text(String(value || 'N/A'), valueX, yPos);
+      yPos += 5;
+    };
+
+    const drawTable = (headers: string[], rows: string[][]) => {
+      const colWidth = (pageWidth - margin * 2) / headers.length;
+      
+      addNewPageIfNeeded(10);
+      // Header row
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(margin, yPos - 3, pageWidth - margin * 2, 7, 'F');
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+      headers.forEach((header, i) => {
+        pdf.text(header, margin + i * colWidth + 2, yPos + 2);
+      });
+      yPos += 7;
+
+      // Data rows
+      pdf.setFont('helvetica', 'normal');
+      rows.forEach(row => {
+        addNewPageIfNeeded(6);
+        row.forEach((cell, i) => {
+          pdf.text(String(cell).substring(0, 20), margin + i * colWidth + 2, yPos);
+        });
+        yPos += 5;
+      });
+      yPos += 3;
+    };
+
+    // Draw header
+    drawHeader();
+
+    // Report generation info
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    pdf.text(`Generated on: ${new Date(generatedReport.generatedAt).toLocaleString()}`, margin, yPos);
+    yPos += 8;
+
+    // Process each report
+    generatedReport.reports.forEach((report: any) => {
+      const data = report.data;
+      
+      drawSectionHeader(report.name);
+
+      switch (report.id) {
+        case 'company_details':
+          drawKeyValue('Legal Name', data.legalName);
+          drawKeyValue('Trade Name', data.tradeName);
+          drawKeyValue('Constitution', data.constitutionOfBusiness);
+          drawKeyValue('Business Nature', data.businessNature);
+          drawKeyValue('Registration Date', data.registrationDate);
+          drawKeyValue('Status', data.status);
+          break;
+
+        case 'gst_details':
+          drawKeyValue('GSTIN', data.gstin);
+          drawKeyValue('Status', data.status);
+          drawKeyValue('State Jurisdiction', data.stateJurisdiction);
+          drawKeyValue('Taxpayer Type', data.taxpayerType);
+          drawKeyValue('Last Filing Date', data.lastFilingDate);
+          drawKeyValue('Compliance Rating', data.complianceRating);
+          break;
+
+        case 'pan':
+          drawKeyValue('PAN Number', data.panNumber);
+          drawKeyValue('Status', data.status);
+          drawKeyValue('Name', data.name);
+          drawKeyValue('Category', data.category);
+          break;
+
+        case 'itr_info':
+          drawKeyValue('Last Filed Year', data.lastFiledYear);
+          drawKeyValue('Filing Status', data.filingStatus);
+          drawKeyValue('Total Income', data.totalIncome);
+          drawKeyValue('Tax Paid', data.taxPaid);
+          break;
+
+        case 'charges':
+          drawKeyValue('Total Charges', String(data.totalCharges));
+          drawKeyValue('Active Charges', String(data.activeCharges));
+          drawKeyValue('Satisfied Charges', String(data.satisfiedCharges));
+          if (data.chargeDetails?.length > 0) {
+            yPos += 3;
+            drawTable(
+              ['Charge Holder', 'Amount', 'Status', 'Date'],
+              data.chargeDetails.map((c: any) => [c.holder, c.amount, c.status, c.date])
+            );
+          }
+          break;
+
+        case 'litigation':
+          drawKeyValue('Total Cases', String(data.totalCases));
+          drawKeyValue('Pending Cases', String(data.pendingCases));
+          drawKeyValue('Resolved Cases', String(data.resolvedCases));
+          if (data.caseDetails?.length > 0) {
+            yPos += 3;
+            drawTable(
+              ['Court', 'Type', 'Status', 'Year'],
+              data.caseDetails.map((c: any) => [c.court, c.type, c.status, c.year])
+            );
+          }
+          break;
+
+        case 'commercial_cibil':
+          drawKeyValue('Credit Score', String(data.score));
+          drawKeyValue('Rating', data.rating);
+          drawKeyValue('Credit Limit', data.creditLimit);
+          drawKeyValue('Utilization Rate', data.utilizationRate);
+          break;
+
+        case 'individual_cibil':
+          if (data.directors?.length > 0) {
+            drawTable(
+              ['Director Name', 'CIBIL Score', 'Status'],
+              data.directors.map((d: any) => [d.name, String(d.score), d.status])
+            );
+          }
+          break;
+
+        case 'aadhaar':
+          drawKeyValue('Verification Status', data.verified ? 'Verified' : 'Not Verified');
+          drawKeyValue('Directors Verified', String(data.directorsVerified));
+          drawKeyValue('Total Directors', String(data.totalDirectors));
+          break;
+
+        case 'land_records':
+          drawKeyValue('Properties Owned', String(data.propertiesOwned));
+          drawKeyValue('Total Value', data.totalValue);
+          drawKeyValue('Encumbered Properties', String(data.encumberedProperties));
+          break;
+
+        case 'mobile_verification':
+          drawKeyValue('Primary Mobile', data.primaryMobile);
+          drawKeyValue('Verification Status', data.verified ? 'Verified' : 'Not Verified');
+          drawKeyValue('Linked to Director', data.linkedToDirector);
+          break;
+
+        case 'director_pan':
+          if (data.directors?.length > 0) {
+            drawTable(
+              ['Director Name', 'PAN', 'Status'],
+              data.directors.map((d: any) => [d.name, d.pan, d.status])
+            );
+          }
+          break;
+
+        case 'tan':
+          drawKeyValue('TAN Number', data.tanNumber);
+          drawKeyValue('Status', data.status);
+          drawKeyValue('Last TDS Filing Date', data.lastTdsFilingDate);
+          break;
+
+        case 'contact_email':
+          drawKeyValue('Primary Email', data.primaryEmail);
+          drawKeyValue('Verification Status', data.verified ? 'Verified' : 'Not Verified');
+          drawKeyValue('Domain', data.domain);
+          break;
+
+        case 'registered_address':
+          drawKeyValue('Address', data.address);
+          drawKeyValue('City', data.city);
+          drawKeyValue('State', data.state);
+          drawKeyValue('Pincode', data.pincode);
+          drawKeyValue('Verification Status', data.verified ? 'Verified' : 'Not Verified');
+          break;
+
+        case 'associated_companies':
+          drawKeyValue('Total Associated', String(data.totalAssociated));
+          if (data.companies?.length > 0) {
+            yPos += 3;
+            drawTable(
+              ['Company Name', 'Relation', 'Status'],
+              data.companies.map((c: any) => [c.name, c.relation, c.status])
+            );
+          }
+          break;
+
+        case 'directors':
+          drawKeyValue('Total Directors', String(data.totalDirectors));
+          drawKeyValue('Active Directors', String(data.activeDirectors));
+          if (data.directors?.length > 0) {
+            yPos += 3;
+            drawTable(
+              ['DIN', 'Name', 'Designation', 'Appointment'],
+              data.directors.map((d: any) => [d.din, d.name, d.designation, d.appointmentDate])
+            );
+          }
+          break;
+
+        default:
+          Object.entries(data).forEach(([key, value]) => {
+            if (typeof value !== 'object') {
+              drawKeyValue(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), String(value));
+            }
+          });
+      }
+
+      yPos += 5;
+    });
+
+    // Footer
+    const totalPages = pdf.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+      pdf.text('Confidential - MSME Credit Report', margin, pageHeight - 8);
+    }
+
+    // Save the PDF
+    const fileName = `MSME_Credit_Report_${companyData?.gstin || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+    toast.success('PDF downloaded successfully!');
+  };
+
   const groupedReports = reportOptions.reduce((acc, report) => {
     if (!acc[report.category]) acc[report.category] = [];
     acc[report.category].push(report);
@@ -438,7 +717,7 @@ const MSMECreditReport = () => {
             ))}
 
             <div className="flex gap-3 pt-4">
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="flex-1" onClick={exportToPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
