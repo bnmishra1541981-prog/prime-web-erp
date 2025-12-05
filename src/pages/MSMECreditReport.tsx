@@ -934,6 +934,7 @@ const MSMECreditReport = () => {
                     >
                       <Checkbox
                         checked={selectedReports.includes(report.id)}
+                        onClick={(e) => e.stopPropagation()}
                         onCheckedChange={() => handleReportToggle(report.id)}
                       />
                       <div className="flex-1 min-w-0">
