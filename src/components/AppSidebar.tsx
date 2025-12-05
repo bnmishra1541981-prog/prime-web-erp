@@ -28,6 +28,7 @@ import {
   Truck,
   BarChart3,
   ClipboardList,
+  CreditCard,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
@@ -36,6 +37,7 @@ import solviserLogo from '@/assets/solviser-logo.png';
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Notifications', url: '/notifications', icon: Bell },
+  { title: 'MSME Credit Report', url: '/msme-credit-report', icon: CreditCard },
   {
     title: 'Production',
     icon: Package,

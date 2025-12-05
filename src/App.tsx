@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import MSMECreditReport from "./pages/MSMECreditReport";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -350,6 +351,14 @@ const AppRoutes = () => {
         }
       />
       <Route path="/invoice-demo" element={<InvoiceDemo />} />
+      <Route
+        path="/msme-credit-report"
+        element={
+          <ProtectedRoute>
+            <MSMECreditReport />
+          </ProtectedRoute>
+        }
+      />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
