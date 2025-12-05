@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useGstinLookup, GstinData } from '@/hooks/useGstinLookup';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +29,8 @@ import {
   FileCheck,
   History,
   Eye,
-  Trash2
+  Trash2,
+  Send
 } from 'lucide-react';
 
 interface SavedReport {
@@ -79,6 +81,9 @@ const MSMECreditReport = () => {
   const [generatedReport, setGeneratedReport] = useState<any>(null);
   const [reportHistory, setReportHistory] = useState<SavedReport[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { fetchGstinDetails, loading: gstinLoading } = useGstinLookup();
 
   // Fetch report history on mount
@@ -218,6 +223,50 @@ const MSMECreditReport = () => {
     
     // Save to database
     await saveReportToDatabase(mockReport);
+  };
+
+  const sendEmailReport = async () => {
+    if (!recipientEmail || !generatedReport || !companyData) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const reportDataMap: Record<string, any> = {};
+      generatedReport.reports.forEach((report: any) => {
+        reportDataMap[report.id] = report.data;
+      });
+
+      const { data, error } = await supabase.functions.invoke('send-credit-report-email', {
+        body: {
+          recipientEmail,
+          companyName: companyData.legal_name || companyData.name || 'Company',
+          gstin: companyData.gstin || '',
+          reportData: reportDataMap,
+          selectedReports: selectedReports
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Report sent successfully to ${recipientEmail}`);
+      setEmailDialogOpen(false);
+      setRecipientEmail('');
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast.error(error.message || 'Failed to send email');
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const getMockReportData = (reportId: string, company: GstinData | null) => {
@@ -815,10 +864,52 @@ const MSMECreditReport = () => {
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
-              <Button variant="outline" className="flex-1">
-                <Mail className="h-4 w-4 mr-2" />
-                Email Report
-              </Button>
+              <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex-1">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Report
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Send Credit Report via Email</DialogTitle>
+                    <DialogDescription>
+                      Enter the recipient's email address to send the credit report for {companyData?.legal_name || companyData?.name}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Recipient Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter email address"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={sendEmailReport} disabled={isSendingEmail || !recipientEmail}>
+                      {isSendingEmail ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Send Email
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>

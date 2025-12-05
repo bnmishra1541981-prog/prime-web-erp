@@ -1,1 +1,4 @@
 project_id = "hqvpnwxoyaqqnjjsmxqz"
+
+[functions.send-credit-report-email]
+verify_jwt = false
