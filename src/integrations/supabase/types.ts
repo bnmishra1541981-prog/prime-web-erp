@@ -587,6 +587,39 @@ export type Database = {
         }
         Relationships: []
       }
+      msme_credit_reports: {
+        Row: {
+          company_data: Json
+          company_name: string
+          created_at: string
+          gstin: string
+          id: string
+          report_data: Json
+          selected_reports: string[]
+          user_id: string
+        }
+        Insert: {
+          company_data: Json
+          company_name: string
+          created_at?: string
+          gstin: string
+          id?: string
+          report_data: Json
+          selected_reports: string[]
+          user_id: string
+        }
+        Update: {
+          company_data?: Json
+          company_name?: string
+          created_at?: string
+          gstin?: string
+          id?: string
+          report_data?: Json
+          selected_reports?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_logs: {
         Row: {
           channel: string
