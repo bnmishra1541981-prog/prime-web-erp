@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useGstinLookup, GstinData } from '@/hooks/useGstinLookup';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import jsPDF from 'jspdf';
 import { 
   Search, 
@@ -23,8 +25,21 @@ import {
   Download,
   CheckCircle2,
   AlertCircle,
-  FileCheck
+  FileCheck,
+  History,
+  Eye,
+  Trash2
 } from 'lucide-react';
+
+interface SavedReport {
+  id: string;
+  gstin: string;
+  company_name: string;
+  company_data: any;
+  selected_reports: string[];
+  report_data: any;
+  created_at: string;
+}
 
 interface ReportOption {
   id: string;
@@ -55,13 +70,89 @@ const reportOptions: ReportOption[] = [
 ];
 
 const MSMECreditReport = () => {
+  const { user } = useAuth();
   const [gstin, setGstin] = useState('');
   const [companyData, setCompanyData] = useState<GstinData | null>(null);
   const [selectedReports, setSelectedReports] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<any>(null);
+  const [reportHistory, setReportHistory] = useState<SavedReport[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const { fetchGstinDetails, loading: gstinLoading } = useGstinLookup();
+
+  // Fetch report history on mount
+  useEffect(() => {
+    fetchReportHistory();
+  }, [user]);
+
+  const fetchReportHistory = async () => {
+    if (!user) return;
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('msme_credit_reports')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (error) throw error;
+      setReportHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching report history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const saveReportToDatabase = async (report: any) => {
+    if (!user || !companyData) return;
+    
+    try {
+      const { error } = await supabase
+        .from('msme_credit_reports')
+        .insert([{
+          user_id: user.id,
+          gstin: companyData.gstin || '',
+          company_name: companyData.legal_name || companyData.name || '',
+          company_data: companyData as any,
+          selected_reports: selectedReports,
+          report_data: report as any
+        }] as any);
+
+      if (error) throw error;
+      toast.success('Report saved to history');
+      fetchReportHistory();
+    } catch (error) {
+      console.error('Error saving report:', error);
+      toast.error('Failed to save report');
+    }
+  };
+
+  const loadSavedReport = (saved: SavedReport) => {
+    setCompanyData(saved.company_data);
+    setGstin(saved.gstin);
+    setSelectedReports(saved.selected_reports);
+    setGeneratedReport(saved.report_data);
+    setReportGenerated(true);
+    toast.success('Report loaded from history');
+  };
+
+  const deleteReport = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('msme_credit_reports')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Report deleted');
+      fetchReportHistory();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast.error('Failed to delete report');
+    }
+  };
 
   const handleGstinSearch = async () => {
     if (!gstin || gstin.length !== 15) {
@@ -124,6 +215,9 @@ const MSMECreditReport = () => {
     setReportGenerated(true);
     setIsGenerating(false);
     toast.success('Master Credit Report generated successfully!');
+    
+    // Save to database
+    await saveReportToDatabase(mockReport);
   };
 
   const getMockReportData = (reportId: string, company: GstinData | null) => {
@@ -729,6 +823,64 @@ const MSMECreditReport = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Report History Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Report History
+          </CardTitle>
+          <CardDescription>View and manage your previously generated reports</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : reportHistory.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No reports generated yet</p>
+          ) : (
+            <div className="space-y-3">
+              {reportHistory.map((saved) => (
+                <div
+                  key={saved.id}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span className="font-medium truncate">{saved.company_name}</span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                      <span>GSTIN: {saved.gstin}</span>
+                      <span>{saved.selected_reports.length} reports</span>
+                      <span>{new Date(saved.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => loadSavedReport(saved)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteReport(saved.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
