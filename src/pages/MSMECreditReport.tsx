@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useGstinLookup, GstinData } from '@/hooks/useGstinLookup';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { CreditReportTable } from '@/components/reports/CreditReportTable';
 import jsPDF from 'jspdf';
 import { 
   Search, 
@@ -852,9 +853,7 @@ const MSMECreditReport = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-40">
-                    {JSON.stringify(report.data, null, 2)}
-                  </pre>
+                  <CreditReportTable reportId={report.id} data={report.data} />
                 </CardContent>
               </Card>
             ))}
