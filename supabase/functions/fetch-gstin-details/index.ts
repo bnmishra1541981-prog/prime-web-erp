@@ -47,21 +47,25 @@ serve(async (req) => {
     // If not in database, fetch from GSTN API
     // Using Masters India API as example - user needs to configure GSTIN_API_KEY secret
     const gstinApiKey = Deno.env.get('GSTIN_API_KEY');
+    const gstinClientId = Deno.env.get('GSTIN_CLIENT_ID');
     
-    if (!gstinApiKey) {
+    if (!gstinApiKey || !gstinClientId) {
       return new Response(
         JSON.stringify({ 
-          error: 'GSTIN API key not configured. Please add GSTIN_API_KEY secret.',
+          error: 'GSTIN API credentials not configured. Please add GSTIN_API_KEY and GSTIN_CLIENT_ID secrets.',
           configRequired: true 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    // Call GSTIN API (adjust endpoint based on your provider)
+    // Call GSTIN API with required headers
+    console.log('Calling Masters India API for GSTIN:', gstin);
     const apiResponse = await fetch(`https://commonapi.mastersindia.co/commonapis/searchgstin?gstin=${gstin}`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${gstinApiKey}`,
+        'client_id': gstinClientId,
         'Content-Type': 'application/json',
       },
     });
