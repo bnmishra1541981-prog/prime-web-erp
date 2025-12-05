@@ -44,84 +44,55 @@ serve(async (req) => {
       );
     }
 
-    // If not in database, fetch from GSTN API
-    // Using Masters India API as example - user needs to configure GSTIN_API_KEY secret
-    const gstinApiKey = Deno.env.get('GSTIN_API_KEY');
-    const gstinClientId = Deno.env.get('GSTIN_CLIENT_ID');
+    // Return dummy data for now - API integration to be added later
+    console.log('Returning dummy data for GSTIN:', gstin);
     
-    if (!gstinApiKey || !gstinClientId) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'GSTIN API credentials not configured. Please add GSTIN_API_KEY and GSTIN_CLIENT_ID secrets.',
-          configRequired: true 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    // Call GSTIN API with required headers
-    console.log('Calling Masters India API for GSTIN:', gstin);
-    const apiResponse = await fetch(`https://commonapi.mastersindia.co/commonapis/searchgstin?gstin=${gstin}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${gstinApiKey}`,
-        'client_id': gstinClientId,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!apiResponse.ok) {
-      throw new Error('Failed to fetch GSTIN details from API');
-    }
-
-    const apiData = await apiResponse.json();
-
-    if (apiData.error) {
-      return new Response(
-        JSON.stringify({ error: 'GSTIN not found or invalid', details: apiData }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
-
-    // Map API response to our database schema
-    const gstData = apiData.data;
+    // Extract state code from GSTIN (first 2 digits)
+    const stateCode = gstin.substring(0, 2);
+    const stateMap: Record<string, string> = {
+      '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab',
+      '04': 'Chandigarh', '05': 'Uttarakhand', '06': 'Haryana',
+      '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh',
+      '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh',
+      '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram',
+      '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam',
+      '19': 'West Bengal', '20': 'Jharkhand', '21': 'Odisha',
+      '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+      '26': 'Dadra & Nagar Haveli', '27': 'Maharashtra', '29': 'Karnataka',
+      '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala',
+      '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman & Nicobar',
+      '36': 'Telangana', '37': 'Andhra Pradesh'
+    };
+    
     const mappedData = {
       gstin: gstin,
-      legal_name: gstData.lgnm || '',
-      trade_name: gstData.tradeNam || '',
-      name: gstData.tradeNam || gstData.lgnm || '',
-      registration_date: gstData.rgdt ? new Date(gstData.rgdt.split('/').reverse().join('-')).toISOString().split('T')[0] : null,
-      business_nature: gstData.nba?.[0] || '',
-      taxpayer_type: gstData.dty || '',
-      constitution_of_business: gstData.ctb || '',
-      state_jurisdiction: gstData.stj || '',
-      gstn_status: gstData.sts || '',
-      state: gstData.pradr?.addr?.stcd || '',
-      address: [
-        gstData.pradr?.addr?.bno,
-        gstData.pradr?.addr?.bnm,
-        gstData.pradr?.addr?.flno,
-        gstData.pradr?.addr?.st,
-        gstData.pradr?.addr?.loc,
-        gstData.pradr?.addr?.dst,
-        gstData.pradr?.addr?.stcd,
-      ].filter(Boolean).join(', '),
-      building_name: gstData.pradr?.addr?.bnm || '',
-      building_no: gstData.pradr?.addr?.bno || '',
-      floor_no: gstData.pradr?.addr?.flno || '',
-      street: gstData.pradr?.addr?.st || '',
-      locality: gstData.pradr?.addr?.loc || '',
-      city: gstData.pradr?.addr?.city || gstData.pradr?.addr?.loc || '',
-      district: gstData.pradr?.addr?.dst || '',
-      pincode: gstData.pradr?.addr?.pncd?.toString() || '',
-      gstin_state_code: gstin.substring(0, 2),
-      last_updated_date: gstData.lstupdt ? new Date(gstData.lstupdt.split('/').reverse().join('-')).toISOString().split('T')[0] : null,
+      legal_name: `Demo Company (${gstin})`,
+      trade_name: `Demo Trade Name`,
+      name: `Demo Company`,
+      registration_date: '2020-01-01',
+      business_nature: 'Wholesale Business',
+      taxpayer_type: 'Regular',
+      constitution_of_business: 'Private Limited Company',
+      state_jurisdiction: 'State Office',
+      gstn_status: 'Active',
+      state: stateMap[stateCode] || 'Unknown',
+      address: '123 Demo Street, Demo Area',
+      building_name: 'Demo Building',
+      building_no: '123',
+      floor_no: '1st Floor',
+      street: 'Demo Street',
+      locality: 'Demo Locality',
+      city: 'Demo City',
+      district: 'Demo District',
+      pincode: '380001',
+      gstin_state_code: stateCode,
+      last_updated_date: new Date().toISOString().split('T')[0],
     };
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        source: 'api',
+        source: 'dummy',
         data: mappedData 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
