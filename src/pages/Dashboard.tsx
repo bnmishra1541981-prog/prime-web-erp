@@ -9,6 +9,8 @@ import { SalesPurchaseChart } from '@/components/dashboard/SalesPurchaseChart';
 import { CustomerAnalytics } from '@/components/dashboard/CustomerAnalytics';
 import { InventoryAnalytics } from '@/components/dashboard/InventoryAnalytics';
 import { RecentOrders } from '@/components/dashboard/RecentOrders';
+import { SawmillStats } from '@/components/dashboard/SawmillStats';
+import { ProductionStats } from '@/components/dashboard/ProductionStats';
 import { formatCurrency } from '@/lib/currency';
 
 const Dashboard = () => {
@@ -320,6 +322,12 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sawmill Stats */}
+      {companyId && <SawmillStats companyId={companyId} />}
+
+      {/* Production Stats */}
+      <ProductionStats />
 
       {/* Sales & Purchase Chart */}
       {companyId && <SalesPurchaseChart companyId={companyId} />}

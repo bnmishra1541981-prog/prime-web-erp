@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, FileText, Factory, Users, Briefcase, Download, Printer } from "lucide-react";
+import { Loader2, FileText, Factory, Users, Briefcase, Download, Printer, Package } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import jsPDF from "jspdf";
@@ -50,6 +50,16 @@ interface ContractorReport {
   entries_count: number;
 }
 
+interface InventoryItem {
+  output_type: string;
+  size: string;
+  opening_stock: number;
+  production_qty: number;
+  sales_qty: number;
+  closing_stock: number;
+  unit: string;
+}
+
 const SawmillReports = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -69,6 +79,7 @@ const SawmillReports = () => {
   const [millReports, setMillReports] = useState<MillReport[]>([]);
   const [teamReports, setTeamReports] = useState<TeamReport[]>([]);
   const [contractorReports, setContractorReports] = useState<ContractorReport[]>([]);
+  const [inventoryReport, setInventoryReport] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
     if (user) fetchCompanies();
@@ -105,6 +116,7 @@ const SawmillReports = () => {
       fetchMillReports(),
       fetchTeamReports(),
       fetchContractorReports(),
+      fetchInventoryReport(),
     ]);
     setLoading(false);
   };
@@ -259,6 +271,108 @@ const SawmillReports = () => {
     setContractorReports(reports.filter(r => r.entries_count > 0 || r.current_balance > 0));
   };
 
+  const fetchInventoryReport = async () => {
+    // Get opening stock (production before date range)
+    const { data: openingProdData } = await supabase
+      .from("sawmill_output_entries")
+      .select("output_type, size, cft, weight, quantity")
+      .eq("company_id", selectedCompany)
+      .lt("entry_date", dateRange.start);
+
+    // Get production during date range
+    const { data: productionData } = await supabase
+      .from("sawmill_output_entries")
+      .select("output_type, size, cft, weight, quantity")
+      .eq("company_id", selectedCompany)
+      .gte("entry_date", dateRange.start)
+      .lte("entry_date", dateRange.end);
+
+    // Get sales vouchers during date range (this would be sales of finished goods)
+    const { data: salesVouchers } = await supabase
+      .from("vouchers")
+      .select("id")
+      .eq("company_id", selectedCompany)
+      .eq("voucher_type", "sales")
+      .gte("voucher_date", dateRange.start)
+      .lte("voucher_date", dateRange.end);
+
+    const salesVoucherIds = salesVouchers?.map(v => v.id) || [];
+    
+    let salesEntries: any[] = [];
+    if (salesVoucherIds.length > 0) {
+      const { data } = await supabase
+        .from("voucher_entries")
+        .select("quantity, stock_item_id, stock_items(name)")
+        .in("voucher_id", salesVoucherIds);
+      salesEntries = data || [];
+    }
+
+    // Group by output type and size
+    const inventoryMap: Record<string, InventoryItem> = {};
+
+    // Process opening stock
+    openingProdData?.forEach(entry => {
+      const key = `${entry.output_type}-${entry.size || 'default'}`;
+      const isWeight = ["firewood", "sawdust"].includes(entry.output_type);
+      const qty = isWeight ? Number(entry.weight || 0) : Number(entry.cft || 0);
+      
+      if (!inventoryMap[key]) {
+        inventoryMap[key] = {
+          output_type: entry.output_type,
+          size: entry.size || "-",
+          opening_stock: 0,
+          production_qty: 0,
+          sales_qty: 0,
+          closing_stock: 0,
+          unit: isWeight ? "Kg" : "CFT",
+        };
+      }
+      inventoryMap[key].opening_stock += qty;
+    });
+
+    // Process production during period
+    productionData?.forEach(entry => {
+      const key = `${entry.output_type}-${entry.size || 'default'}`;
+      const isWeight = ["firewood", "sawdust"].includes(entry.output_type);
+      const qty = isWeight ? Number(entry.weight || 0) : Number(entry.cft || 0);
+      
+      if (!inventoryMap[key]) {
+        inventoryMap[key] = {
+          output_type: entry.output_type,
+          size: entry.size || "-",
+          opening_stock: 0,
+          production_qty: 0,
+          sales_qty: 0,
+          closing_stock: 0,
+          unit: isWeight ? "Kg" : "CFT",
+        };
+      }
+      inventoryMap[key].production_qty += qty;
+    });
+
+    // Process sales (simplified - matching by item name if available)
+    salesEntries?.forEach(entry => {
+      const itemName = (entry.stock_items as any)?.name?.toLowerCase() || "";
+      const qty = Number(entry.quantity || 0);
+      
+      // Try to match sales to inventory types
+      Object.keys(inventoryMap).forEach(key => {
+        const item = inventoryMap[key];
+        if (itemName.includes(item.output_type.replace("_", " ")) || 
+            itemName.includes(item.size.toLowerCase())) {
+          item.sales_qty += qty;
+        }
+      });
+    });
+
+    // Calculate closing stock
+    Object.values(inventoryMap).forEach(item => {
+      item.closing_stock = item.opening_stock + item.production_qty - item.sales_qty;
+    });
+
+    setInventoryReport(Object.values(inventoryMap).sort((a, b) => a.output_type.localeCompare(b.output_type)));
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -347,7 +461,7 @@ const SawmillReports = () => {
 
       <div ref={printRef}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="mill" className="flex items-center gap-2">
               <Factory className="h-4 w-4" /> Mill-wise
             </TabsTrigger>
@@ -356,6 +470,9 @@ const SawmillReports = () => {
             </TabsTrigger>
             <TabsTrigger value="contractor" className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" /> Contractor-wise
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="flex items-center gap-2">
+              <Package className="h-4 w-4" /> Inventory
             </TabsTrigger>
           </TabsList>
 
@@ -514,6 +631,87 @@ const SawmillReports = () => {
                           <TableCell className="text-right">{formatCurrency(contractorReports.reduce((s, r) => s + r.total_amount, 0))}</TableCell>
                           <TableCell className="text-right text-green-600">{formatCurrency(contractorReports.reduce((s, r) => s + r.payments_made, 0))}</TableCell>
                           <TableCell className="text-right">{formatCurrency(contractorReports.reduce((s, r) => s + r.current_balance, 0))}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="inventory" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Inventory / Stock Report (Production + / Sales - = Balance)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {inventoryReport.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No inventory data found</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product Type</TableHead>
+                          <TableHead>Size</TableHead>
+                          <TableHead className="text-right">Opening Stock</TableHead>
+                          <TableHead className="text-right text-green-600">+ Production</TableHead>
+                          <TableHead className="text-right text-red-600">- Sales</TableHead>
+                          <TableHead className="text-right">Closing Stock</TableHead>
+                          <TableHead>Unit</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {inventoryReport.map((item, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="font-medium capitalize">{item.output_type.replace("_", " ")}</TableCell>
+                            <TableCell>{item.size}</TableCell>
+                            <TableCell className="text-right">{item.opening_stock.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-green-600">+{item.production_qty.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-red-600">-{item.sales_qty.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant={item.closing_stock > 0 ? "default" : "secondary"}>
+                                {item.closing_stock.toFixed(2)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{item.unit}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell colSpan={2}>Total (CFT items)</TableCell>
+                          <TableCell className="text-right">
+                            {inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.opening_stock, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right text-green-600">
+                            +{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.production_qty, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right text-red-600">
+                            -{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.sales_qty, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.closing_stock, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell>CFT</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell colSpan={2}>Total (Weight items)</TableCell>
+                          <TableCell className="text-right">
+                            {inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.opening_stock, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right text-green-600">
+                            +{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.production_qty, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right text-red-600">
+                            -{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.sales_qty, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.closing_stock, 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell>Kg</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
