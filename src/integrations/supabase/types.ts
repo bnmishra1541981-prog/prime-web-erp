@@ -1008,6 +1008,42 @@ export type Database = {
           },
         ]
       }
+      sawmill_employee_assignments: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          id: string
+          saw_mill_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          saw_mill_id: string
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          saw_mill_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_employee_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "sawmill_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_employee_assignments_saw_mill_id_fkey"
+            columns: ["saw_mill_id"]
+            isOneToOne: false
+            referencedRelation: "saw_mills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sawmill_employees: {
         Row: {
           company_id: string
@@ -1133,6 +1169,7 @@ export type Database = {
           created_at: string | null
           created_by: string
           entry_date: string
+          height: number | null
           id: string
           length: number | null
           notes: string | null
@@ -1142,6 +1179,8 @@ export type Database = {
           saw_mill_id: string | null
           size: string | null
           updated_at: string | null
+          weight: number | null
+          width: number | null
         }
         Insert: {
           cft: number
@@ -1149,6 +1188,7 @@ export type Database = {
           created_at?: string | null
           created_by: string
           entry_date?: string
+          height?: number | null
           id?: string
           length?: number | null
           notes?: string | null
@@ -1158,6 +1198,8 @@ export type Database = {
           saw_mill_id?: string | null
           size?: string | null
           updated_at?: string | null
+          weight?: number | null
+          width?: number | null
         }
         Update: {
           cft?: number
@@ -1165,6 +1207,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           entry_date?: string
+          height?: number | null
           id?: string
           length?: number | null
           notes?: string | null
@@ -1174,6 +1217,8 @@ export type Database = {
           saw_mill_id?: string | null
           size?: string | null
           updated_at?: string | null
+          weight?: number | null
+          width?: number | null
         }
         Relationships: [
           {

@@ -18,18 +18,21 @@ interface OutputEntry {
   entry_date: string;
   output_type: string;
   size: string | null;
+  height: number | null;
+  width: number | null;
   length: number | null;
   quantity: number;
   cft: number;
+  weight: number | null;
   notes: string | null;
   saw_mills?: { name: string } | null;
 }
 
 const OUTPUT_TYPES = [
-  { id: "main_material", label: "Main Material", color: "bg-green-500" },
-  { id: "off_side", label: "Off-Side Material", color: "bg-blue-500" },
-  { id: "firewood", label: "Firewood", color: "bg-orange-500" },
-  { id: "sawdust", label: "Sawdust", color: "bg-yellow-500" },
+  { id: "main_material", label: "Main Material", color: "bg-green-500", useWeight: false },
+  { id: "off_side", label: "Off-Side Material", color: "bg-blue-500", useWeight: false },
+  { id: "firewood", label: "Firewood", color: "bg-orange-500", useWeight: true },
+  { id: "sawdust", label: "Sawdust", color: "bg-yellow-500", useWeight: true },
 ];
 
 const SawmillOutputEntry = () => {
@@ -48,11 +51,30 @@ const SawmillOutputEntry = () => {
     saw_mill_id: "",
     output_type: "main_material",
     size: "",
+    height: "",
+    width: "",
     length: "",
     quantity: "1",
-    cft: "",
+    weight: "", // For firewood/sawdust in kgs
     notes: "",
   });
+
+  // Check if current output type uses weight instead of dimensions
+  const currentOutputType = OUTPUT_TYPES.find(t => t.id === formData.output_type);
+  const useWeight = currentOutputType?.useWeight || false;
+
+  // Auto-calculate CFT: (Height × Width × Length × Qty) / 144
+  const calculateCFT = () => {
+    if (useWeight) return 0; // No CFT for weight-based products
+    const height = parseFloat(formData.height) || 0;
+    const width = parseFloat(formData.width) || 0;
+    const length = parseFloat(formData.length) || 0;
+    const quantity = parseFloat(formData.quantity) || 1;
+    // Height and Width in inches, Length in feet
+    return (height * width * length * quantity) / 144;
+  };
+
+  const calculatedCFT = calculateCFT();
 
   useEffect(() => {
     if (user) fetchCompanies();
@@ -111,9 +133,21 @@ const SawmillOutputEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.output_type || !formData.cft) {
-      toast({ title: "Error", description: "Please fill output type and CFT", variant: "destructive" });
+    if (!formData.output_type) {
+      toast({ title: "Error", description: "Please select output type", variant: "destructive" });
       return;
+    }
+
+    if (useWeight) {
+      if (!formData.weight) {
+        toast({ title: "Error", description: "Please enter weight", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!formData.height || !formData.width || !formData.length) {
+        toast({ title: "Error", description: "Please fill height, width and length", variant: "destructive" });
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -124,9 +158,12 @@ const SawmillOutputEntry = () => {
         entry_date: formData.entry_date,
         output_type: formData.output_type,
         size: formData.size || null,
+        height: formData.height ? parseFloat(formData.height) : null,
+        width: formData.width ? parseFloat(formData.width) : null,
         length: formData.length ? parseFloat(formData.length) : null,
         quantity: parseFloat(formData.quantity) || 1,
-        cft: parseFloat(formData.cft),
+        cft: useWeight ? 0 : calculatedCFT,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
         notes: formData.notes || null,
         created_by: user?.id,
       });
@@ -138,9 +175,11 @@ const SawmillOutputEntry = () => {
       setFormData(prev => ({
         ...prev,
         size: "",
+        height: "",
+        width: "",
         length: "",
         quantity: "1",
-        cft: "",
+        weight: "",
         notes: "",
       }));
       
@@ -152,11 +191,11 @@ const SawmillOutputEntry = () => {
   };
 
   // Calculate output percentages
-  const todayOutputCFT = entries.reduce((sum, e) => sum + e.cft, 0);
+  const todayOutputCFT = entries.filter(e => !["firewood", "sawdust"].includes(e.output_type)).reduce((sum, e) => sum + e.cft, 0);
   const mainMaterialCFT = entries.filter(e => e.output_type === "main_material").reduce((sum, e) => sum + e.cft, 0);
   const offSideCFT = entries.filter(e => e.output_type === "off_side").reduce((sum, e) => sum + e.cft, 0);
-  const firewoodCFT = entries.filter(e => e.output_type === "firewood").reduce((sum, e) => sum + e.cft, 0);
-  const sawdustCFT = entries.filter(e => e.output_type === "sawdust").reduce((sum, e) => sum + e.cft, 0);
+  const firewoodKg = entries.filter(e => e.output_type === "firewood").reduce((sum, e) => sum + (e.weight || 0), 0);
+  const sawdustKg = entries.filter(e => e.output_type === "sawdust").reduce((sum, e) => sum + (e.weight || 0), 0);
 
   const getPercent = (cft: number) => {
     if (todayInputCFT === 0) return 0;
@@ -224,17 +263,15 @@ const SawmillOutputEntry = () => {
             </div>
             <div className="text-center p-3 bg-orange-500/10 rounded-lg">
               <p className="text-xs text-muted-foreground">Firewood</p>
-              <p className="text-xl font-bold text-orange-600">{firewoodCFT.toFixed(2)}</p>
-              <Badge variant="secondary">{getPercent(firewoodCFT)}%</Badge>
+              <p className="text-xl font-bold text-orange-600">{firewoodKg.toFixed(1)} kg</p>
             </div>
             <div className="text-center p-3 bg-yellow-500/10 rounded-lg">
               <p className="text-xs text-muted-foreground">Sawdust</p>
-              <p className="text-xl font-bold text-yellow-600">{sawdustCFT.toFixed(2)}</p>
-              <Badge variant="secondary">{getPercent(sawdustCFT)}%</Badge>
+              <p className="text-xl font-bold text-yellow-600">{sawdustKg.toFixed(1)} kg</p>
             </div>
           </div>
           <div className="mt-4 p-3 bg-primary/10 rounded-lg flex items-center justify-between">
-            <span className="text-sm font-medium">Overall Yield</span>
+            <span className="text-sm font-medium">Overall Yield (Main + Off-Side)</span>
             <Badge className="text-lg px-4">{getPercent(todayOutputCFT)}%</Badge>
           </div>
         </CardContent>
@@ -290,52 +327,111 @@ const SawmillOutputEntry = () => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="size">Size (e.g., 2x4, 4x6)</Label>
-                  <Input
-                    id="size"
-                    value={formData.size}
-                    onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                    placeholder="Size specification"
-                  />
+              {useWeight ? (
+                /* Weight-based input for Firewood/Sawdust */
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="weight">Weight (Kgs) *</Label>
+                      <Input
+                        id="weight"
+                        type="number"
+                        step="0.1"
+                        value={formData.weight}
+                        onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quantity">Bags/Units</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                        placeholder="1"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg text-sm">
+                    <p className="text-muted-foreground">
+                      {formData.weight ? `${(parseFloat(formData.weight) / 1000).toFixed(3)} Metric Tons` : "Enter weight in kgs"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="length">Length (feet)</Label>
-                  <Input
-                    id="length"
-                    type="number"
-                    step="0.01"
-                    value={formData.length}
-                    onChange={(e) => setFormData({ ...formData, length: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
+              ) : (
+                /* Dimension-based input for Main Material/Off-Side */
+                <>
+                  <div>
+                    <Label htmlFor="size">Size Name (e.g., 2x4, 4x6)</Label>
+                    <Input
+                      id="size"
+                      value={formData.size}
+                      onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                      placeholder="Size specification"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    placeholder="1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cft">CFT *</Label>
-                  <Input
-                    id="cft"
-                    type="number"
-                    step="0.01"
-                    value={formData.cft}
-                    onChange={(e) => setFormData({ ...formData, cft: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="height">Height (inch) *</Label>
+                      <Input
+                        id="height"
+                        type="number"
+                        step="0.25"
+                        value={formData.height}
+                        onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="width">Width (inch) *</Label>
+                      <Input
+                        id="width"
+                        type="number"
+                        step="0.25"
+                        value={formData.width}
+                        onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="length">Length (feet) *</Label>
+                      <Input
+                        id="length"
+                        type="number"
+                        step="0.5"
+                        value={formData.length}
+                        onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="quantity">Quantity *</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                        placeholder="1"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Total CFT</Label>
+                      <div className="h-10 px-3 py-2 bg-primary/10 rounded-md font-bold text-primary">
+                        {calculatedCFT.toFixed(3)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded-lg text-xs text-muted-foreground">
+                    Formula: (Height × Width × Length × Qty) / 144
+                  </div>
+                </>
+              )}
 
               <div>
                 <Label htmlFor="notes">Notes</Label>
@@ -373,9 +469,9 @@ const SawmillOutputEntry = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Type</TableHead>
-                      <TableHead>Size</TableHead>
+                      <TableHead>Size/Dimensions</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">CFT</TableHead>
+                      <TableHead className="text-right">CFT/Kg</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -386,9 +482,17 @@ const SawmillOutputEntry = () => {
                             {getOutputTypeLabel(entry.output_type)}
                           </Badge>
                         </TableCell>
-                        <TableCell>{entry.size || "-"}</TableCell>
+                        <TableCell>
+                          {["firewood", "sawdust"].includes(entry.output_type) 
+                            ? "-" 
+                            : entry.size || `${entry.height}×${entry.width}×${entry.length}`}
+                        </TableCell>
                         <TableCell className="text-right">{entry.quantity}</TableCell>
-                        <TableCell className="text-right font-medium">{entry.cft.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {["firewood", "sawdust"].includes(entry.output_type)
+                            ? `${entry.weight?.toFixed(1)} kg`
+                            : `${entry.cft.toFixed(2)} CFT`}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
