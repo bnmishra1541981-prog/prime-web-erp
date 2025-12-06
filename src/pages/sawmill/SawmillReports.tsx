@@ -640,81 +640,136 @@ const SawmillReports = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="inventory" className="mt-4">
+          <TabsContent value="inventory" className="mt-4 space-y-6">
+            {/* Size-wise Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(() => {
+                const sizeGroups = inventoryReport
+                  .filter(i => i.unit === "CFT")
+                  .reduce((acc, item) => {
+                    const size = item.size || "Unspecified";
+                    if (!acc[size]) acc[size] = { size, closing_stock: 0, production_qty: 0 };
+                    acc[size].closing_stock += item.closing_stock;
+                    acc[size].production_qty += item.production_qty;
+                    return acc;
+                  }, {} as Record<string, { size: string; closing_stock: number; production_qty: number }>);
+                
+                return Object.values(sizeGroups).map((group, idx) => (
+                  <Card key={idx} className="border-l-4 border-l-primary">
+                    <CardContent className="pt-4">
+                      <p className="text-xs text-muted-foreground uppercase">Size: {group.size}</p>
+                      <p className="text-2xl font-bold">{group.closing_stock.toFixed(2)} <span className="text-sm text-muted-foreground">CFT</span></p>
+                      <p className="text-xs text-green-600">+{group.production_qty.toFixed(2)} produced</p>
+                    </CardContent>
+                  </Card>
+                ));
+              })()}
+            </div>
+
+            {/* Size-wise Breakdown Table */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5" />
-                  Inventory / Stock Report (Production + / Sales - = Balance)
+                  Size-wise Inventory Breakdown
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {inventoryReport.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">No inventory data found</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Product Type</TableHead>
-                          <TableHead>Size</TableHead>
-                          <TableHead className="text-right">Opening Stock</TableHead>
-                          <TableHead className="text-right text-green-600">+ Production</TableHead>
-                          <TableHead className="text-right text-red-600">- Sales</TableHead>
-                          <TableHead className="text-right">Closing Stock</TableHead>
-                          <TableHead>Unit</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {inventoryReport.map((item, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="font-medium capitalize">{item.output_type.replace("_", " ")}</TableCell>
-                            <TableCell>{item.size}</TableCell>
-                            <TableCell className="text-right">{item.opening_stock.toFixed(2)}</TableCell>
-                            <TableCell className="text-right text-green-600">+{item.production_qty.toFixed(2)}</TableCell>
-                            <TableCell className="text-right text-red-600">-{item.sales_qty.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">
-                              <Badge variant={item.closing_stock > 0 ? "default" : "secondary"}>
-                                {item.closing_stock.toFixed(2)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{item.unit}</TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow className="bg-muted/50 font-bold">
-                          <TableCell colSpan={2}>Total (CFT items)</TableCell>
-                          <TableCell className="text-right">
-                            {inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.opening_stock, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right text-green-600">
-                            +{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.production_qty, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right text-red-600">
-                            -{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.sales_qty, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.closing_stock, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell>CFT</TableCell>
-                        </TableRow>
-                        <TableRow className="bg-muted/50 font-bold">
-                          <TableCell colSpan={2}>Total (Weight items)</TableCell>
-                          <TableCell className="text-right">
-                            {inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.opening_stock, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right text-green-600">
-                            +{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.production_qty, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right text-red-600">
-                            -{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.sales_qty, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.closing_stock, 0).toFixed(2)}
-                          </TableCell>
-                          <TableCell>Kg</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+                  <div className="space-y-6">
+                    {/* Group by Size */}
+                    {(() => {
+                      const groupedBySize = inventoryReport.reduce((acc, item) => {
+                        const size = item.size || "Unspecified";
+                        if (!acc[size]) acc[size] = [];
+                        acc[size].push(item);
+                        return acc;
+                      }, {} as Record<string, InventoryItem[]>);
+
+                      return Object.entries(groupedBySize).map(([size, items], idx) => (
+                        <div key={idx} className="border rounded-lg overflow-hidden">
+                          <div className="bg-muted/50 px-4 py-2 border-b flex justify-between items-center">
+                            <h4 className="font-semibold">Size: {size}</h4>
+                            <Badge variant="outline">
+                              Total: {items.reduce((s, i) => s + i.closing_stock, 0).toFixed(2)} {items[0]?.unit || "CFT"}
+                            </Badge>
+                          </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Product Type</TableHead>
+                                <TableHead className="text-right">Opening</TableHead>
+                                <TableHead className="text-right text-green-600">+ Production</TableHead>
+                                <TableHead className="text-right text-red-600">- Sales</TableHead>
+                                <TableHead className="text-right">Closing</TableHead>
+                                <TableHead>Unit</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {items.map((item, i) => (
+                                <TableRow key={i}>
+                                  <TableCell className="font-medium capitalize">{item.output_type.replace("_", " ")}</TableCell>
+                                  <TableCell className="text-right">{item.opening_stock.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right text-green-600">+{item.production_qty.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right text-red-600">-{item.sales_qty.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right">
+                                    <Badge variant={item.closing_stock > 0 ? "default" : "secondary"}>
+                                      {item.closing_stock.toFixed(2)}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>{item.unit}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ));
+                    })()}
+
+                    {/* Summary Totals */}
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Summary Totals</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">CFT Items - Opening</p>
+                            <p className="text-xl font-bold">{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.opening_stock, 0).toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">CFT Items - Production</p>
+                            <p className="text-xl font-bold text-green-600">+{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.production_qty, 0).toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">CFT Items - Sales</p>
+                            <p className="text-xl font-bold text-red-600">-{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.sales_qty, 0).toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">CFT Items - Closing</p>
+                            <p className="text-xl font-bold">{inventoryReport.filter(i => i.unit === "CFT").reduce((s, r) => s + r.closing_stock, 0).toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Weight Items - Opening</p>
+                            <p className="text-xl font-bold">{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.opening_stock, 0).toFixed(2)} Kg</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Weight Items - Production</p>
+                            <p className="text-xl font-bold text-green-600">+{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.production_qty, 0).toFixed(2)} Kg</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Weight Items - Sales</p>
+                            <p className="text-xl font-bold text-red-600">-{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.sales_qty, 0).toFixed(2)} Kg</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Weight Items - Closing</p>
+                            <p className="text-xl font-bold">{inventoryReport.filter(i => i.unit === "Kg").reduce((s, r) => s + r.closing_stock, 0).toFixed(2)} Kg</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
               </CardContent>
