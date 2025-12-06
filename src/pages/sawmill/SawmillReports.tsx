@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, FileText, Factory, Users, Briefcase, Download, Printer, Package } from "lucide-react";
+import { Loader2, FileText, Factory, Users, Briefcase, Download, Printer, Package, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from "recharts";
 
 interface MillReport {
   mill_id: string;
@@ -60,6 +61,22 @@ interface InventoryItem {
   unit: string;
 }
 
+interface InventoryTrendData {
+  date: string;
+  [key: string]: number | string;
+}
+
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(142, 76%, 36%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(280, 65%, 60%)",
+  "hsl(200, 98%, 39%)",
+  "hsl(0, 84%, 60%)",
+  "hsl(160, 84%, 39%)",
+  "hsl(30, 100%, 50%)",
+];
+
 const SawmillReports = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -80,6 +97,8 @@ const SawmillReports = () => {
   const [teamReports, setTeamReports] = useState<TeamReport[]>([]);
   const [contractorReports, setContractorReports] = useState<ContractorReport[]>([]);
   const [inventoryReport, setInventoryReport] = useState<InventoryItem[]>([]);
+  const [inventoryTrend, setInventoryTrend] = useState<InventoryTrendData[]>([]);
+  const [sizeTrendData, setSizeTrendData] = useState<{ size: string; data: InventoryTrendData[] }[]>([]);
 
   useEffect(() => {
     if (user) fetchCompanies();
@@ -117,6 +136,7 @@ const SawmillReports = () => {
       fetchTeamReports(),
       fetchContractorReports(),
       fetchInventoryReport(),
+      fetchInventoryTrends(),
     ]);
     setLoading(false);
   };
@@ -371,6 +391,74 @@ const SawmillReports = () => {
     });
 
     setInventoryReport(Object.values(inventoryMap).sort((a, b) => a.output_type.localeCompare(b.output_type)));
+  };
+
+  const fetchInventoryTrends = async () => {
+    // Get all output entries for daily trend data
+    const { data: outputData } = await supabase
+      .from("sawmill_output_entries")
+      .select("entry_date, output_type, size, cft, weight")
+      .eq("company_id", selectedCompany)
+      .gte("entry_date", dateRange.start)
+      .lte("entry_date", dateRange.end)
+      .order("entry_date");
+
+    if (!outputData || outputData.length === 0) {
+      setInventoryTrend([]);
+      setSizeTrendData([]);
+      return;
+    }
+
+    // Get unique sizes
+    const uniqueSizes = [...new Set(outputData.filter(d => d.size).map(d => d.size))].filter(Boolean) as string[];
+    
+    // Create daily data points
+    const days = eachDayOfInterval({
+      start: parseISO(dateRange.start),
+      end: parseISO(dateRange.end),
+    });
+
+    // Build trend data for overall production by day
+    const dailyTrend: InventoryTrendData[] = days.map(day => {
+      const dateStr = format(day, "yyyy-MM-dd");
+      const dayData = outputData.filter(d => d.entry_date === dateStr);
+      
+      const result: InventoryTrendData = {
+        date: format(day, "MMM dd"),
+        main_material: dayData.filter(d => d.output_type === "main_material").reduce((sum, d) => sum + Number(d.cft || 0), 0),
+        off_side: dayData.filter(d => d.output_type === "off_side").reduce((sum, d) => sum + Number(d.cft || 0), 0),
+        firewood: dayData.filter(d => d.output_type === "firewood").reduce((sum, d) => sum + Number(d.weight || 0), 0),
+        sawdust: dayData.filter(d => d.output_type === "sawdust").reduce((sum, d) => sum + Number(d.weight || 0), 0),
+      };
+      
+      return result;
+    });
+
+    setInventoryTrend(dailyTrend);
+
+    // Build size-wise trend data with cumulative stock
+    const sizeTrends: { size: string; data: InventoryTrendData[] }[] = uniqueSizes.map(size => {
+      let cumulativeStock = 0;
+      
+      const data = days.map(day => {
+        const dateStr = format(day, "yyyy-MM-dd");
+        const dayProduction = outputData
+          .filter(d => d.entry_date === dateStr && d.size === size && !["firewood", "sawdust"].includes(d.output_type))
+          .reduce((sum, d) => sum + Number(d.cft || 0), 0);
+        
+        cumulativeStock += dayProduction;
+        
+        return {
+          date: format(day, "MMM dd"),
+          production: dayProduction,
+          stock: cumulativeStock,
+        };
+      });
+
+      return { size, data };
+    });
+
+    setSizeTrendData(sizeTrends);
   };
 
   const handlePrint = () => {
@@ -641,6 +729,185 @@ const SawmillReports = () => {
           </TabsContent>
 
           <TabsContent value="inventory" className="mt-4 space-y-6">
+            {/* Daily Production Trend Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Daily Production Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {inventoryTrend.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No trend data available</p>
+                ) : (
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={inventoryTrend}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="date" className="text-xs" />
+                        <YAxis className="text-xs" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--background))', 
+                            borderColor: 'hsl(var(--border))',
+                            borderRadius: '8px'
+                          }} 
+                        />
+                        <Legend />
+                        <Area type="monotone" dataKey="main_material" name="Main Material (CFT)" stackId="1" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.6} />
+                        <Area type="monotone" dataKey="off_side" name="Off-Side (CFT)" stackId="1" stroke={CHART_COLORS[1]} fill={CHART_COLORS[1]} fillOpacity={0.6} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Size-wise Stock Trend Charts */}
+            {sizeTrendData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Size-wise Stock Trends
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {sizeTrendData.map((sizeData, idx) => (
+                      <div key={sizeData.size} className="border rounded-lg p-4">
+                        <h4 className="font-semibold mb-3">Size: {sizeData.size}</h4>
+                        <div className="h-[200px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={sizeData.data}>
+                              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                              <XAxis dataKey="date" className="text-xs" tick={{ fontSize: 10 }} />
+                              <YAxis className="text-xs" tick={{ fontSize: 10 }} />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: 'hsl(var(--background))', 
+                                  borderColor: 'hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  fontSize: '12px'
+                                }} 
+                              />
+                              <Area 
+                                type="monotone" 
+                                dataKey="stock" 
+                                name="Cumulative Stock (CFT)" 
+                                stroke={CHART_COLORS[idx % CHART_COLORS.length]} 
+                                fill={CHART_COLORS[idx % CHART_COLORS.length]} 
+                                fillOpacity={0.4} 
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Stock Distribution Pie Chart */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Stock by Size (CFT)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const sizeGroups = inventoryReport
+                      .filter(i => i.unit === "CFT")
+                      .reduce((acc, item) => {
+                        const size = item.size || "Unspecified";
+                        if (!acc[size]) acc[size] = 0;
+                        acc[size] += item.closing_stock;
+                        return acc;
+                      }, {} as Record<string, number>);
+                    
+                    const pieData = Object.entries(sizeGroups).map(([name, value]) => ({ name, value }));
+                    
+                    return pieData.length > 0 ? (
+                      <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={pieData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={100}
+                              paddingAngle={2}
+                              dataKey="value"
+                              label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            >
+                              {pieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value: number) => value.toFixed(2) + " CFT"} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No stock data</p>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Production by Type
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const typeGroups = inventoryReport.reduce((acc, item) => {
+                      const type = item.output_type.replace("_", " ");
+                      if (!acc[type]) acc[type] = { name: type, production: 0, stock: 0 };
+                      acc[type].production += item.production_qty;
+                      acc[type].stock += item.closing_stock;
+                      return acc;
+                    }, {} as Record<string, { name: string; production: number; stock: number }>);
+                    
+                    const barData = Object.values(typeGroups);
+                    
+                    return barData.length > 0 ? (
+                      <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={barData}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="name" className="text-xs" tick={{ fontSize: 10 }} />
+                            <YAxis className="text-xs" />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--background))', 
+                                borderColor: 'hsl(var(--border))',
+                                borderRadius: '8px'
+                              }} 
+                            />
+                            <Legend />
+                            <Bar dataKey="production" name="Production" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="stock" name="Stock" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No production data</p>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Size-wise Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
