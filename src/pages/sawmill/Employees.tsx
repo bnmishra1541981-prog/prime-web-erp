@@ -265,12 +265,12 @@ const Employees = () => {
                 </div>
                 <div>
                   <Label htmlFor="saw_mill">Saw Mill</Label>
-                  <Select value={formData.saw_mill_id} onValueChange={(v) => setFormData({ ...formData, saw_mill_id: v })}>
+                  <Select value={formData.saw_mill_id || "all"} onValueChange={(v) => setFormData({ ...formData, saw_mill_id: v === "all" ? "" : v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Mill" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Mills</SelectItem>
+                      <SelectItem value="all">All Mills</SelectItem>
                       {sawMills.map((m) => (
                         <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                       ))}
