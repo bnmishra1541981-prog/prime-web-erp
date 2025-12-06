@@ -44,6 +44,15 @@ import ContraVoucher from "./pages/vouchers/ContraVoucher";
 import InvoiceView from "./pages/vouchers/InvoiceView";
 import { MainLayout } from "./components/MainLayout";
 import { useAuth } from "./contexts/AuthContext";
+// Sawmill imports
+import SawmillDashboard from "./pages/sawmill/SawmillDashboard";
+import SawMillManagement from "./pages/sawmill/SawMillManagement";
+import SawmillContractors from "./pages/sawmill/Contractors";
+import SawmillProductionEntry from "./pages/sawmill/ProductionEntry";
+import SawmillOutputEntry from "./pages/sawmill/OutputEntry";
+import ContractorPayments from "./pages/sawmill/ContractorPayments";
+import SawmillExpenses from "./pages/sawmill/Expenses";
+import SawmillEmployees from "./pages/sawmill/Employees";
 
 const queryClient = new QueryClient();
 
@@ -359,6 +368,15 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      {/* Sawmill Routes */}
+      <Route path="/sawmill/dashboard" element={<ProtectedRoute><SawmillDashboard /></ProtectedRoute>} />
+      <Route path="/sawmill/mills" element={<ProtectedRoute><SawMillManagement /></ProtectedRoute>} />
+      <Route path="/sawmill/contractors" element={<ProtectedRoute><SawmillContractors /></ProtectedRoute>} />
+      <Route path="/sawmill/production" element={<ProtectedRoute><SawmillProductionEntry /></ProtectedRoute>} />
+      <Route path="/sawmill/output" element={<ProtectedRoute><SawmillOutputEntry /></ProtectedRoute>} />
+      <Route path="/sawmill/payments" element={<ProtectedRoute><ContractorPayments /></ProtectedRoute>} />
+      <Route path="/sawmill/expenses" element={<ProtectedRoute><SawmillExpenses /></ProtectedRoute>} />
+      <Route path="/sawmill/employees" element={<ProtectedRoute><SawmillEmployees /></ProtectedRoute>} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

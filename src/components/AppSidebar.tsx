@@ -29,6 +29,9 @@ import {
   BarChart3,
   ClipboardList,
   CreditCard,
+  TreeDeciduous,
+  Wallet,
+  Factory,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
@@ -38,6 +41,20 @@ const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Notifications', url: '/notifications', icon: Bell },
   { title: 'MSME Credit Report', url: '/msme-credit-report', icon: CreditCard },
+  {
+    title: 'Saw Mill',
+    icon: TreeDeciduous,
+    subItems: [
+      { title: 'Dashboard', url: '/sawmill/dashboard', icon: LayoutDashboard },
+      { title: 'Saw Mills', url: '/sawmill/mills', icon: Factory },
+      { title: 'Contractors', url: '/sawmill/contractors', icon: Users },
+      { title: 'Production Entry', url: '/sawmill/production', icon: ClipboardList },
+      { title: 'Output Entry', url: '/sawmill/output', icon: Package },
+      { title: 'Payments', url: '/sawmill/payments', icon: Wallet },
+      { title: 'Expenses', url: '/sawmill/expenses', icon: Receipt },
+      { title: 'Employees', url: '/sawmill/employees', icon: Users },
+    ],
+  },
   {
     title: 'Production',
     icon: Package,
