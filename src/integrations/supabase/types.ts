@@ -849,6 +849,432 @@ export type Database = {
         }
         Relationships: []
       }
+      saw_mills: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          location: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saw_mills_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sawmill_contractor_payments: {
+        Row: {
+          amount: number
+          company_id: string
+          contractor_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_mode: string | null
+          voucher_id: string | null
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          contractor_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_mode?: string | null
+          voucher_id?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          contractor_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_mode?: string | null
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_contractor_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_contractor_payments_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "sawmill_contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_contractor_payments_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sawmill_contractors: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string | null
+          current_balance: number | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          opening_balance: number | null
+          phone: string | null
+          saw_mill_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string | null
+          current_balance?: number | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          opening_balance?: number | null
+          phone?: string | null
+          saw_mill_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string | null
+          current_balance?: number | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          opening_balance?: number | null
+          phone?: string | null
+          saw_mill_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_contractors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_contractors_saw_mill_id_fkey"
+            columns: ["saw_mill_id"]
+            isOneToOne: false
+            referencedRelation: "saw_mills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sawmill_employees: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          daily_wage: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          role: Database["public"]["Enums"]["sawmill_role"]
+          saw_mill_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          daily_wage?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["sawmill_role"]
+          saw_mill_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          daily_wage?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["sawmill_role"]
+          saw_mill_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_employees_saw_mill_id_fkey"
+            columns: ["saw_mill_id"]
+            isOneToOne: false
+            referencedRelation: "saw_mills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sawmill_expenses: {
+        Row: {
+          amount: number
+          category: string
+          company_id: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          expense_date: string
+          id: string
+          saw_mill_id: string | null
+          voucher_id: string | null
+        }
+        Insert: {
+          amount: number
+          category: string
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          saw_mill_id?: string | null
+          voucher_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          saw_mill_id?: string | null
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_expenses_saw_mill_id_fkey"
+            columns: ["saw_mill_id"]
+            isOneToOne: false
+            referencedRelation: "saw_mills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_expenses_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sawmill_output_entries: {
+        Row: {
+          cft: number
+          company_id: string
+          created_at: string | null
+          created_by: string
+          entry_date: string
+          id: string
+          length: number | null
+          notes: string | null
+          output_type: string
+          production_entry_id: string | null
+          quantity: number
+          saw_mill_id: string | null
+          size: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cft: number
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          entry_date?: string
+          id?: string
+          length?: number | null
+          notes?: string | null
+          output_type: string
+          production_entry_id?: string | null
+          quantity?: number
+          saw_mill_id?: string | null
+          size?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cft?: number
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          entry_date?: string
+          id?: string
+          length?: number | null
+          notes?: string | null
+          output_type?: string
+          production_entry_id?: string | null
+          quantity?: number
+          saw_mill_id?: string | null
+          size?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_output_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_output_entries_production_entry_id_fkey"
+            columns: ["production_entry_id"]
+            isOneToOne: false
+            referencedRelation: "sawmill_production_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_output_entries_saw_mill_id_fkey"
+            columns: ["saw_mill_id"]
+            isOneToOne: false
+            referencedRelation: "saw_mills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sawmill_production_entries: {
+        Row: {
+          cft: number
+          company_id: string
+          contractor_id: string | null
+          created_at: string | null
+          created_by: string
+          entry_date: string
+          girth: number
+          id: string
+          length: number
+          notes: string | null
+          quantity: number
+          rate_per_cft: number
+          saw_mill_id: string | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          cft: number
+          company_id: string
+          contractor_id?: string | null
+          created_at?: string | null
+          created_by: string
+          entry_date?: string
+          girth: number
+          id?: string
+          length: number
+          notes?: string | null
+          quantity?: number
+          rate_per_cft: number
+          saw_mill_id?: string | null
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          cft?: number
+          company_id?: string
+          contractor_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          entry_date?: string
+          girth?: number
+          id?: string
+          length?: number
+          notes?: string | null
+          quantity?: number
+          rate_per_cft?: number
+          saw_mill_id?: string | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_production_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_production_entries_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "sawmill_contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_production_entries_saw_mill_id_fkey"
+            columns: ["saw_mill_id"]
+            isOneToOne: false
+            referencedRelation: "saw_mills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_groups: {
         Row: {
           company_id: string
@@ -1381,6 +1807,7 @@ export type Database = {
         | "in_production"
         | "partially_dispatched"
         | "completed"
+      sawmill_role: "admin" | "production_team" | "accounts_team" | "viewer"
       voucher_type:
         | "sales"
         | "purchase"
@@ -1565,6 +1992,7 @@ export const Constants = {
         "partially_dispatched",
         "completed",
       ],
+      sawmill_role: ["admin", "production_team", "accounts_team", "viewer"],
       voucher_type: [
         "sales",
         "purchase",
