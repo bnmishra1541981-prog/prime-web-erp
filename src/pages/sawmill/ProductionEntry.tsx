@@ -42,19 +42,22 @@ const SawmillProductionEntry = () => {
     entry_date: new Date().toISOString().split("T")[0],
     saw_mill_id: "",
     contractor_id: "",
-    girth: "",
+    girth: "", // Now in centimeters
     length: "",
     quantity: "1",
     rate_per_cft: "",
     notes: "",
   });
 
-  // Auto-calculate CFT: (Girth × Girth × Length) / 2304
+  // CFT calculation: Convert girth from cm to inches, then apply formula
+  // Girth (cm) → Girth (inches) = Girth / 2.54
+  // CFT = (Girth_inches × Girth_inches × Length_feet × Quantity) / 2304
   const calculateCFT = () => {
-    const girth = parseFloat(formData.girth) || 0;
+    const girthCm = parseFloat(formData.girth) || 0;
+    const girthInches = girthCm / 2.54; // Convert cm to inches
     const length = parseFloat(formData.length) || 0;
     const quantity = parseFloat(formData.quantity) || 1;
-    return (girth * girth * length * quantity) / 2304;
+    return (girthInches * girthInches * length * quantity) / 2304;
   };
 
   const calculatedCFT = calculateCFT();
@@ -129,12 +132,16 @@ const SawmillProductionEntry = () => {
 
     setSubmitting(true);
     try {
+      // Store girth in cm, but the CFT is calculated using inches internally
+      const girthCm = parseFloat(formData.girth);
+      const girthInches = girthCm / 2.54;
+      
       const { error } = await supabase.from("sawmill_production_entries").insert({
         company_id: selectedCompany,
         saw_mill_id: formData.saw_mill_id || null,
         contractor_id: formData.contractor_id,
         entry_date: formData.entry_date,
-        girth: parseFloat(formData.girth),
+        girth: girthInches, // Store as inches for consistency with existing data
         length: parseFloat(formData.length),
         quantity: parseFloat(formData.quantity) || 1,
         cft: calculatedCFT,
@@ -166,6 +173,9 @@ const SawmillProductionEntry = () => {
 
   const todayTotal = entries.reduce((sum, e) => sum + e.total_amount, 0);
   const todayCFT = entries.reduce((sum, e) => sum + e.cft, 0);
+
+  // Convert stored inches back to cm for display
+  const girthInchesToCm = (inches: number) => (inches * 2.54).toFixed(1);
 
   if (loading) {
     return (
@@ -268,11 +278,11 @@ const SawmillProductionEntry = () => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="girth">Girth (inches) *</Label>
+                  <Label htmlFor="girth">Girth (cm) *</Label>
                   <Input
                     id="girth"
                     type="number"
-                    step="0.01"
+                    step="0.1"
                     value={formData.girth}
                     onChange={(e) => setFormData({ ...formData, girth: e.target.value })}
                     placeholder="0"
@@ -325,7 +335,7 @@ const SawmillProductionEntry = () => {
                 <p className="text-sm text-muted-foreground">Total Amount</p>
                 <p className="text-2xl font-bold text-primary">{formatCurrency(totalAmount)}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Formula: (Girth² × Length × Qty) / 2304 × Rate
+                  Formula: (Girth_cm/2.54)² × Length × Qty / 2304 × Rate
                 </p>
               </div>
 
@@ -365,7 +375,7 @@ const SawmillProductionEntry = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Contractor</TableHead>
-                      <TableHead className="text-right">Girth</TableHead>
+                      <TableHead className="text-right">Girth (cm)</TableHead>
                       <TableHead className="text-right">Length</TableHead>
                       <TableHead className="text-right">CFT</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
@@ -377,7 +387,7 @@ const SawmillProductionEntry = () => {
                         <TableCell className="font-medium">
                           {entry.sawmill_contractors?.name || "-"}
                         </TableCell>
-                        <TableCell className="text-right">{entry.girth}"</TableCell>
+                        <TableCell className="text-right">{girthInchesToCm(entry.girth)} cm</TableCell>
                         <TableCell className="text-right">{entry.length}'</TableCell>
                         <TableCell className="text-right">{entry.cft.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-medium">

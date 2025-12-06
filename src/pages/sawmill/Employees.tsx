@@ -2,26 +2,41 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
-interface Employee {
+interface UserRole {
+  id: string;
+  user_id: string;
+  full_name: string;
+  role: string;
+  department: string | null;
+  phone: string | null;
+}
+
+interface SawmillEmployee {
   id: string;
   name: string;
   phone: string | null;
   role: string;
   daily_wage: number;
   is_active: boolean;
-  saw_mill_id: string | null;
+  user_id: string | null;
   saw_mills?: { name: string } | null;
+}
+
+interface EmployeeAssignment {
+  id: string;
+  employee_id: string;
+  saw_mill_id: string;
 }
 
 const ROLES = [
@@ -37,16 +52,17 @@ const Employees = () => {
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [sawMills, setSawMills] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<SawmillEmployee[]>([]);
+  const [teamMembers, setTeamMembers] = useState<UserRole[]>([]);
+  const [assignments, setAssignments] = useState<EmployeeAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<SawmillEmployee | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
+    user_id: "",
     role: "production_team",
     daily_wage: 0,
-    saw_mill_id: "",
+    selected_mills: [] as string[],
   });
 
   useEffect(() => {
@@ -57,6 +73,7 @@ const Employees = () => {
     if (selectedCompany) {
       fetchSawMills();
       fetchEmployees();
+      fetchTeamMembers();
     }
   }, [selectedCompany]);
 
@@ -79,11 +96,19 @@ const Employees = () => {
     setSawMills(data || []);
   };
 
+  const fetchTeamMembers = async () => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("id, user_id, full_name, role, department, phone")
+      .order("full_name");
+    setTeamMembers(data || []);
+  };
+
   const fetchEmployees = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("sawmill_employees")
-      .select("*, saw_mills(name)")
+      .select("*")
       .eq("company_id", selectedCompany)
       .order("name");
     
@@ -92,38 +117,87 @@ const Employees = () => {
     } else {
       setEmployees(data || []);
     }
+
+    // Fetch employee assignments
+    const employeeIds = (data || []).map(e => e.id);
+    if (employeeIds.length > 0) {
+      const { data: assignData } = await supabase
+        .from("sawmill_employee_assignments")
+        .select("*")
+        .in("employee_id", employeeIds);
+      setAssignments(assignData || []);
+    }
+
     setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      toast({ title: "Error", description: "Employee name is required", variant: "destructive" });
+    
+    const selectedTeam = teamMembers.find(t => t.user_id === formData.user_id);
+    if (!selectedTeam) {
+      toast({ title: "Error", description: "Please select a team member", variant: "destructive" });
       return;
     }
 
     try {
-      const payload = {
-        company_id: selectedCompany,
-        name: formData.name,
-        phone: formData.phone || null,
-        role: formData.role as any,
-        daily_wage: formData.daily_wage,
-        saw_mill_id: formData.saw_mill_id || null,
-      };
-
       if (editingEmployee) {
+        // Update employee
         const { error } = await supabase
           .from("sawmill_employees")
-          .update(payload)
+          .update({
+            role: formData.role as any,
+            daily_wage: formData.daily_wage,
+          })
           .eq("id", editingEmployee.id);
         
         if (error) throw error;
+
+        // Update mill assignments
+        await supabase
+          .from("sawmill_employee_assignments")
+          .delete()
+          .eq("employee_id", editingEmployee.id);
+
+        if (formData.selected_mills.length > 0) {
+          const assignInserts = formData.selected_mills.map(mill_id => ({
+            employee_id: editingEmployee.id,
+            saw_mill_id: mill_id,
+          }));
+          await supabase.from("sawmill_employee_assignments").insert(assignInserts);
+        }
+
         toast({ title: "Success", description: "Employee updated successfully" });
       } else {
-        const { error } = await supabase.from("sawmill_employees").insert(payload);
+        // Check if already assigned
+        const existing = employees.find(e => e.user_id === formData.user_id);
+        if (existing) {
+          toast({ title: "Error", description: "This team member is already assigned", variant: "destructive" });
+          return;
+        }
+
+        // Create employee
+        const { data: newEmployee, error } = await supabase.from("sawmill_employees").insert({
+          company_id: selectedCompany,
+          user_id: formData.user_id,
+          name: selectedTeam.full_name,
+          phone: selectedTeam.phone,
+          role: formData.role as any,
+          daily_wage: formData.daily_wage,
+        }).select().single();
+
         if (error) throw error;
-        toast({ title: "Success", description: "Employee created successfully" });
+
+        // Create mill assignments
+        if (formData.selected_mills.length > 0 && newEmployee) {
+          const assignInserts = formData.selected_mills.map(mill_id => ({
+            employee_id: newEmployee.id,
+            saw_mill_id: mill_id,
+          }));
+          await supabase.from("sawmill_employee_assignments").insert(assignInserts);
+        }
+
+        toast({ title: "Success", description: "Team member assigned successfully" });
       }
       
       setDialogOpen(false);
@@ -136,10 +210,10 @@ const Employees = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: "", phone: "", role: "production_team", daily_wage: 0, saw_mill_id: "" });
+    setFormData({ user_id: "", role: "production_team", daily_wage: 0, selected_mills: [] });
   };
 
-  const toggleActive = async (employee: Employee) => {
+  const toggleActive = async (employee: SawmillEmployee) => {
     const { error } = await supabase
       .from("sawmill_employees")
       .update({ is_active: !employee.is_active })
@@ -152,14 +226,14 @@ const Employees = () => {
     }
   };
 
-  const openEdit = (employee: Employee) => {
+  const openEdit = (employee: SawmillEmployee) => {
     setEditingEmployee(employee);
+    const empAssignments = assignments.filter(a => a.employee_id === employee.id);
     setFormData({
-      name: employee.name,
-      phone: employee.phone || "",
+      user_id: employee.user_id || "",
       role: employee.role,
       daily_wage: employee.daily_wage,
-      saw_mill_id: employee.saw_mill_id || "",
+      selected_mills: empAssignments.map(a => a.saw_mill_id),
     });
     setDialogOpen(true);
   };
@@ -183,6 +257,16 @@ const Employees = () => {
     }
   };
 
+  const getAssignedMills = (employeeId: string) => {
+    const empAssignments = assignments.filter(a => a.employee_id === employeeId);
+    if (empAssignments.length === 0) return "All Mills";
+    return empAssignments.map(a => sawMills.find(m => m.id === a.saw_mill_id)?.name).filter(Boolean).join(", ");
+  };
+
+  const availableTeamMembers = teamMembers.filter(
+    t => !employees.some(e => e.user_id === t.user_id && e.id !== editingEmployee?.id)
+  );
+
   if (loading && employees.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -195,8 +279,8 @@ const Employees = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Employees</h1>
-          <p className="text-muted-foreground">Manage sawmill employees and their roles</p>
+          <h1 className="text-2xl font-bold text-foreground">Team Assignment</h1>
+          <p className="text-muted-foreground">Assign team members to saw mills</p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
@@ -212,35 +296,37 @@ const Employees = () => {
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={openCreate}>
-                <Plus className="h-4 w-4 mr-2" /> Add Employee
+                <Plus className="h-4 w-4 mr-2" /> Assign Team
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>{editingEmployee ? "Edit Employee" : "Add Employee"}</DialogTitle>
+                <DialogTitle>{editingEmployee ? "Edit Assignment" : "Assign Team Member"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Employee name"
-                  />
+                  <Label htmlFor="team_member">Team Member *</Label>
+                  <Select 
+                    value={formData.user_id} 
+                    onValueChange={(v) => setFormData({ ...formData, user_id: v })}
+                    disabled={!!editingEmployee}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Team Member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(editingEmployee ? teamMembers : availableTeamMembers).map((t) => (
+                        <SelectItem key={t.user_id} value={t.user_id}>
+                          {t.full_name} ({t.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Phone number"
-                  />
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="role">Role</Label>
+                    <Label htmlFor="role">Sawmill Role</Label>
                     <Select value={formData.role} onValueChange={(v) => setFormData({ ...formData, role: v })}>
                       <SelectTrigger>
                         <SelectValue />
@@ -254,31 +340,45 @@ const Employees = () => {
                   </div>
                   <div>
                     <Label htmlFor="daily_wage">Daily Wage</Label>
-                    <Input
+                    <input
                       id="daily_wage"
                       type="number"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={formData.daily_wage}
                       onChange={(e) => setFormData({ ...formData, daily_wage: parseFloat(e.target.value) || 0 })}
                       placeholder="0"
                     />
                   </div>
                 </div>
+
                 <div>
-                  <Label htmlFor="saw_mill">Saw Mill</Label>
-                  <Select value={formData.saw_mill_id || "all"} onValueChange={(v) => setFormData({ ...formData, saw_mill_id: v === "all" ? "" : v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Mill" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Mills</SelectItem>
-                      {sawMills.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Assign to Saw Mills</Label>
+                  <p className="text-xs text-muted-foreground mb-2">Leave unchecked for all mills</p>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-md p-3">
+                    {sawMills.map((mill) => (
+                      <div key={mill.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={mill.id}
+                          checked={formData.selected_mills.includes(mill.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData({ ...formData, selected_mills: [...formData.selected_mills, mill.id] });
+                            } else {
+                              setFormData({ ...formData, selected_mills: formData.selected_mills.filter(id => id !== mill.id) });
+                            }
+                          }}
+                        />
+                        <label htmlFor={mill.id} className="text-sm cursor-pointer">{mill.name}</label>
+                      </div>
+                    ))}
+                    {sawMills.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No saw mills found</p>
+                    )}
+                  </div>
                 </div>
+
                 <Button type="submit" className="w-full">
-                  {editingEmployee ? "Update" : "Create"} Employee
+                  {editingEmployee ? "Update" : "Assign"} Team Member
                 </Button>
               </form>
             </DialogContent>
@@ -290,12 +390,12 @@ const Employees = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Employees List
+            Assigned Team Members
           </CardTitle>
         </CardHeader>
         <CardContent>
           {employees.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No employees found. Add your first employee.</p>
+            <p className="text-muted-foreground text-center py-8">No team members assigned. Assign team members from the existing production team.</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -304,7 +404,7 @@ const Employees = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Saw Mill</TableHead>
+                    <TableHead>Assigned Mills</TableHead>
                     <TableHead className="text-right">Daily Wage</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -320,7 +420,7 @@ const Employees = () => {
                           {getRoleLabel(employee.role)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{employee.saw_mills?.name || "All Mills"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{getAssignedMills(employee.id)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(employee.daily_wage)}</TableCell>
                       <TableCell>
                         <Badge variant={employee.is_active ? "default" : "secondary"}>
