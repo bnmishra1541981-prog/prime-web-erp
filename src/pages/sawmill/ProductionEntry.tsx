@@ -49,13 +49,12 @@ const createEmptyRow = (): FormRow => ({
   total_amount: 0,
 });
 
-// CFT calculation: Convert girth from cm to inches, then apply formula
-const calculateRowCFT = (girthCm: string, length: string, quantity: string): number => {
-  const girth = parseFloat(girthCm) || 0;
-  const girthInches = girth / 2.54;
-  const len = parseFloat(length) || 0;
+// CFT calculation: girth (inches) × girth (inches) × length (meters) × 2.2072 / 10000
+const calculateRowCFT = (girthInches: string, lengthMeters: string, quantity: string): number => {
+  const girth = parseFloat(girthInches) || 0;
+  const len = parseFloat(lengthMeters) || 0;
   const qty = parseFloat(quantity) || 1;
-  return (girthInches * girthInches * len * qty) / 2304;
+  return (girth * girth * len * 2.2072 * qty) / 10000;
 };
 
 const SawmillProductionEntry = () => {
@@ -196,25 +195,20 @@ const SawmillProductionEntry = () => {
 
     setSubmitting(true);
     try {
-      const entriesToInsert = validRows.map(row => {
-        const girthCm = parseFloat(row.girth);
-        const girthInches = girthCm / 2.54;
-        
-        return {
-          company_id: selectedCompany,
-          saw_mill_id: sawMillId || null,
-          contractor_id: contractorId,
-          entry_date: entryDate,
-          girth: girthInches, // Store as inches for consistency
-          length: parseFloat(row.length),
-          quantity: parseFloat(row.quantity) || 1,
-          cft: row.cft,
-          rate_per_cft: parseFloat(row.rate_per_cft),
-          total_amount: row.total_amount,
-          notes: row.notes || null,
-          created_by: user?.id,
-        };
-      });
+      const entriesToInsert = validRows.map(row => ({
+        company_id: selectedCompany,
+        saw_mill_id: sawMillId || null,
+        contractor_id: contractorId,
+        entry_date: entryDate,
+        girth: parseFloat(row.girth), // Store as inches directly
+        length: parseFloat(row.length), // Store as meters
+        quantity: parseFloat(row.quantity) || 1,
+        cft: row.cft,
+        rate_per_cft: parseFloat(row.rate_per_cft),
+        total_amount: row.total_amount,
+        notes: row.notes || null,
+        created_by: user?.id,
+      }));
 
       const { error } = await supabase.from("sawmill_production_entries").insert(entriesToInsert);
 
@@ -237,11 +231,10 @@ const SawmillProductionEntry = () => {
   // Edit existing entry
   const startEditEntry = (entry: ProductionEntry) => {
     setEditingEntryId(entry.id);
-    const girthCm = (entry.girth * 2.54).toFixed(1);
-    const cft = calculateRowCFT(girthCm, entry.length.toString(), entry.quantity.toString());
+    const cft = calculateRowCFT(entry.girth.toString(), entry.length.toString(), entry.quantity.toString());
     setEditRow({
       id: entry.id,
-      girth: girthCm,
+      girth: entry.girth.toString(),
       length: entry.length.toString(),
       quantity: entry.quantity.toString(),
       rate_per_cft: entry.rate_per_cft.toString(),
@@ -274,13 +267,10 @@ const SawmillProductionEntry = () => {
     if (!editRow || !editingEntryId) return;
     
     try {
-      const girthCm = parseFloat(editRow.girth);
-      const girthInches = girthCm / 2.54;
-      
       const { error } = await supabase
         .from("sawmill_production_entries")
         .update({
-          girth: girthInches,
+          girth: parseFloat(editRow.girth),
           length: parseFloat(editRow.length),
           quantity: parseFloat(editRow.quantity) || 1,
           cft: editRow.cft,
@@ -309,7 +299,7 @@ const SawmillProductionEntry = () => {
   const todayTotal = entries.reduce((sum, e) => sum + e.total_amount, 0);
   const todayCFT = entries.reduce((sum, e) => sum + e.cft, 0);
 
-  const girthInchesToCm = (inches: number) => (inches * 2.54).toFixed(1);
+  // No conversion needed now - girth stored as inches, length as meters
 
   if (loading) {
     return (
@@ -416,8 +406,8 @@ const SawmillProductionEntry = () => {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="w-[80px]">S.No</TableHead>
-                      <TableHead>Girth (cm) *</TableHead>
-                      <TableHead>Length (ft) *</TableHead>
+                      <TableHead>Girth (inch) *</TableHead>
+                      <TableHead>Length (mtr) *</TableHead>
                       <TableHead>Qty</TableHead>
                       <TableHead>Rate/CFT *</TableHead>
                       <TableHead>CFT</TableHead>
@@ -622,8 +612,8 @@ const SawmillProductionEntry = () => {
                           <TableCell className="font-medium">
                             {entry.sawmill_contractors?.name || "-"}
                           </TableCell>
-                          <TableCell className="text-right">{girthInchesToCm(entry.girth)} cm</TableCell>
-                          <TableCell className="text-right">{entry.length}'</TableCell>
+                          <TableCell className="text-right">{entry.girth}" </TableCell>
+                          <TableCell className="text-right">{entry.length} mtr</TableCell>
                           <TableCell className="text-right">{entry.quantity}</TableCell>
                           <TableCell className="text-right">{entry.cft.toFixed(2)}</TableCell>
                           <TableCell className="text-right font-medium">
