@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, TreeDeciduous, Plus, Trash2, Edit2, Save, X } from "lucide-react";
+import { Loader2, TreeDeciduous, Plus, Trash2, Edit2, Save, X, Copy } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 
@@ -168,6 +168,20 @@ const SawmillProductionEntry = () => {
       newRow.rate_per_cft = lastRow.rate_per_cft;
     }
     setRows([...rows, newRow]);
+  };
+
+  const copyRow = (rowId: string) => {
+    const rowToCopy = rows.find(row => row.id === rowId);
+    if (!rowToCopy) return;
+    
+    const newRow: FormRow = {
+      ...rowToCopy,
+      id: crypto.randomUUID(),
+    };
+    const rowIndex = rows.findIndex(row => row.id === rowId);
+    const newRows = [...rows];
+    newRows.splice(rowIndex + 1, 0, newRow);
+    setRows(newRows);
   };
 
   const removeRow = (rowId: string) => {
@@ -473,13 +487,24 @@ const SawmillProductionEntry = () => {
                             className="w-24"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyRow(row.id)}
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            title="Copy row"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             onClick={() => removeRow(row.id)}
                             className="h-8 w-8 text-destructive hover:text-destructive"
+                            title="Delete row"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
