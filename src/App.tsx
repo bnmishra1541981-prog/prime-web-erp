@@ -200,94 +200,26 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/production/orders"
-        element={
-          <ProtectedRoute>
-            <ProductionOrders />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/orders/:orderId"
-        element={
-          <ProtectedRoute>
-            <OrderDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/users"
-        element={
-          <ProtectedRoute>
-            <UserManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/assign-orders/:userId"
-        element={
-          <ProtectedRoute>
-            <OrderAssignment />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/manage-orders"
-        element={
-          <ProtectedRoute>
-            <OrderManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/dashboard"
-        element={
-          <ProtectedRoute>
-            <ProductionDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/machines"
-        element={
-          <ProtectedRoute>
-            <MachineManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/dispatch"
-        element={
-          <ProtectedRoute>
-            <DispatchManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/reports"
-        element={
-          <ProtectedRoute>
-            <ProductionReports />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/entry"
-        element={
-          <ProtectedRoute>
-            <ProductionEntry />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/production/my-orders"
-        element={
-          <ProtectedRoute>
-            <MyOrders />
-          </ProtectedRoute>
-        }
-      />
+      {/* Sawmill integrated production routes */}
+      <Route path="/sawmill/orders" element={<ProtectedRoute><ProductionOrders /></ProtectedRoute>} />
+      <Route path="/sawmill/orders/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
+      <Route path="/sawmill/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+      <Route path="/sawmill/assign-orders/:userId" element={<ProtectedRoute><OrderAssignment /></ProtectedRoute>} />
+      <Route path="/sawmill/manage-orders" element={<ProtectedRoute><OrderManagement /></ProtectedRoute>} />
+      <Route path="/sawmill/machines" element={<ProtectedRoute><MachineManagement /></ProtectedRoute>} />
+      <Route path="/sawmill/dispatch" element={<ProtectedRoute><DispatchManagement /></ProtectedRoute>} />
+      <Route path="/sawmill/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
+      {/* Legacy production routes - redirect to sawmill */}
+      <Route path="/production/orders" element={<Navigate to="/sawmill/orders" replace />} />
+      <Route path="/production/orders/:orderId" element={<Navigate to="/sawmill/orders" replace />} />
+      <Route path="/production/users" element={<Navigate to="/sawmill/users" replace />} />
+      <Route path="/production/manage-orders" element={<Navigate to="/sawmill/manage-orders" replace />} />
+      <Route path="/production/dashboard" element={<Navigate to="/sawmill/dashboard" replace />} />
+      <Route path="/production/machines" element={<Navigate to="/sawmill/machines" replace />} />
+      <Route path="/production/dispatch" element={<Navigate to="/sawmill/dispatch" replace />} />
+      <Route path="/production/reports" element={<Navigate to="/sawmill/reports" replace />} />
+      <Route path="/production/entry" element={<Navigate to="/sawmill/production" replace />} />
+      <Route path="/production/my-orders" element={<Navigate to="/sawmill/my-orders" replace />} />
       <Route
         path="/masters/ledger-groups"
         element={
