@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -72,10 +72,42 @@ const SawmillProductionEntry = () => {
   const [sawMillId, setSawMillId] = useState("");
   const [contractorId, setContractorId] = useState("");
   const [rows, setRows] = useState<FormRow[]>([createEmptyRow()]);
+  const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   
   // Edit mode for existing entries
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<FormRow | null>(null);
+
+  // Keyboard shortcuts: Enter to add row, Ctrl+D to duplicate
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Only handle if focus is within the form
+    if (!formRef.current?.contains(document.activeElement)) return;
+    
+    // Enter key to add new row (but not when in a textarea or submitting)
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement?.tagName !== 'TEXTAREA' && activeElement?.tagName !== 'BUTTON') {
+        e.preventDefault();
+        addRow();
+      }
+    }
+    
+    // Ctrl+D to duplicate focused row
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+      e.preventDefault();
+      if (focusedRowId) {
+        copyRow(focusedRowId);
+      } else if (rows.length > 0) {
+        copyRow(rows[rows.length - 1].id);
+      }
+    }
+  }, [focusedRowId, rows]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   // Calculate totals for all rows
   const totalCFT = rows.reduce((sum, row) => sum + row.cft, 0);
@@ -371,9 +403,12 @@ const SawmillProductionEntry = () => {
             <Plus className="h-5 w-5" />
             Add Production Entries
           </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Shortcuts: <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd> add row, <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Ctrl+D</kbd> duplicate row
+          </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
             {/* Common Fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -432,7 +467,7 @@ const SawmillProductionEntry = () => {
                   </TableHeader>
                   <TableBody>
                     {rows.map((row, index) => (
-                      <TableRow key={row.id}>
+                      <TableRow key={row.id} className={focusedRowId === row.id ? "bg-muted/30" : ""}>
                         <TableCell className="font-medium">{index + 1}</TableCell>
                         <TableCell>
                           <Input
@@ -440,6 +475,7 @@ const SawmillProductionEntry = () => {
                             step="0.1"
                             value={row.girth}
                             onChange={(e) => updateRow(row.id, 'girth', e.target.value)}
+                            onFocus={() => setFocusedRowId(row.id)}
                             placeholder="0"
                             className="w-20"
                           />
@@ -450,6 +486,7 @@ const SawmillProductionEntry = () => {
                             step="0.01"
                             value={row.length}
                             onChange={(e) => updateRow(row.id, 'length', e.target.value)}
+                            onFocus={() => setFocusedRowId(row.id)}
                             placeholder="0"
                             className="w-20"
                           />
@@ -459,6 +496,7 @@ const SawmillProductionEntry = () => {
                             type="number"
                             value={row.quantity}
                             onChange={(e) => updateRow(row.id, 'quantity', e.target.value)}
+                            onFocus={() => setFocusedRowId(row.id)}
                             placeholder="1"
                             className="w-16"
                           />
@@ -469,6 +507,7 @@ const SawmillProductionEntry = () => {
                             step="0.01"
                             value={row.rate_per_cft}
                             onChange={(e) => updateRow(row.id, 'rate_per_cft', e.target.value)}
+                            onFocus={() => setFocusedRowId(row.id)}
                             placeholder="0"
                             className="w-20"
                           />
@@ -483,6 +522,7 @@ const SawmillProductionEntry = () => {
                           <Input
                             value={row.notes}
                             onChange={(e) => updateRow(row.id, 'notes', e.target.value)}
+                            onFocus={() => setFocusedRowId(row.id)}
                             placeholder="Notes"
                             className="w-24"
                           />
