@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, TreeDeciduous, Package, Wallet, TrendingUp, Users, Factory } from "lucide-react";
+import { Loader2, TreeDeciduous, Package, Wallet, TrendingUp, Users, Factory, Truck, ClipboardList } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
 interface DashboardStats {
@@ -18,12 +18,29 @@ interface DashboardStats {
   totalPayments: number;
   totalExpenses: number;
   contractorCount: number;
+  // Production/Dispatch stats
+  totalOrders: number;
+  pendingOrders: number;
+  totalProduced: number;
+  totalDispatched: number;
+  balanceQty: number;
 }
 
 interface Contractor {
   id: string;
   name: string;
   current_balance: number;
+}
+
+interface OrderSummary {
+  id: string;
+  order_no: string;
+  customer_name: string;
+  ordered_quantity: number;
+  produced: number;
+  dispatched: number;
+  balance: number;
+  status: string;
 }
 
 const SawmillDashboard = () => {
@@ -34,6 +51,7 @@ const SawmillDashboard = () => {
   const [selectedMill, setSelectedMill] = useState<string>("all");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"today" | "week" | "month">("month");
 
@@ -147,7 +165,58 @@ const SawmillDashboard = () => {
     
     const { data: expenseData } = await expenseQuery;
 
-    // Calculate stats
+    // Fetch sales orders for production/dispatch tracking
+    const { data: salesOrdersData } = await supabase
+      .from("sales_orders")
+      .select("id, order_no, customer_name, ordered_quantity, status, ready_materials")
+      .gte("created_at", dateFilter);
+
+    // Fetch production entries for orders
+    const { data: orderProductionData } = await supabase
+      .from("production_entries")
+      .select("order_id, produced_quantity")
+      .gte("entry_date", dateFilter);
+
+    // Fetch dispatch entries
+    const { data: dispatchData } = await supabase
+      .from("dispatch_entries")
+      .select("order_id, dispatched_quantity")
+      .gte("dispatch_date", dateFilter);
+
+    // Calculate production stats
+    const productionByOrder = new Map<string, number>();
+    orderProductionData?.forEach(e => {
+      const current = productionByOrder.get(e.order_id) || 0;
+      productionByOrder.set(e.order_id, current + Number(e.produced_quantity));
+    });
+
+    const dispatchByOrder = new Map<string, number>();
+    dispatchData?.forEach(e => {
+      const current = dispatchByOrder.get(e.order_id) || 0;
+      dispatchByOrder.set(e.order_id, current + Number(e.dispatched_quantity));
+    });
+
+    const orderSummaries: OrderSummary[] = (salesOrdersData || []).map(order => {
+      const produced = productionByOrder.get(order.id) || Number(order.ready_materials || 0);
+      const dispatched = dispatchByOrder.get(order.id) || 0;
+      return {
+        id: order.id,
+        order_no: order.order_no,
+        customer_name: order.customer_name,
+        ordered_quantity: order.ordered_quantity,
+        produced,
+        dispatched,
+        balance: order.ordered_quantity - dispatched,
+        status: order.status || 'pending',
+      };
+    });
+
+    const totalProduced = orderSummaries.reduce((sum, o) => sum + o.produced, 0);
+    const totalDispatched = orderSummaries.reduce((sum, o) => sum + o.dispatched, 0);
+    const totalOrderedQty = orderSummaries.reduce((sum, o) => sum + o.ordered_quantity, 0);
+    const pendingOrders = orderSummaries.filter(o => o.status !== 'completed').length;
+
+    // Calculate sawmill stats
     const totalInputCFT = productionData?.reduce((sum, e) => sum + Number(e.cft), 0) || 0;
     const totalOutputCFT = outputData?.reduce((sum, e) => sum + Number(e.cft), 0) || 0;
     const mainMaterialCFT = outputData?.filter(e => e.output_type === "main_material").reduce((sum, e) => sum + Number(e.cft), 0) || 0;
@@ -169,8 +238,14 @@ const SawmillDashboard = () => {
       totalPayments,
       totalExpenses,
       contractorCount: contractorData?.length || 0,
+      totalOrders: salesOrdersData?.length || 0,
+      pendingOrders,
+      totalProduced,
+      totalDispatched,
+      balanceQty: totalOrderedQty - totalDispatched,
     });
     setContractors(contractorData || []);
+    setOrders(orderSummaries.slice(0, 5)); // Top 5 orders
     setLoading(false);
   };
 
@@ -182,6 +257,15 @@ const SawmillDashboard = () => {
   const getOutputPercent = (cft: number) => {
     if (!stats || stats.totalInputCFT === 0) return 0;
     return ((cft / stats.totalInputCFT) * 100).toFixed(1);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500';
+      case 'in_production': return 'bg-blue-500';
+      case 'partially_dispatched': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
   };
 
   if (loading && !stats) {
@@ -197,7 +281,7 @@ const SawmillDashboard = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Saw Mill Dashboard</h1>
-          <p className="text-muted-foreground">Production & Contractor Overview</p>
+          <p className="text-muted-foreground">Production, Dispatch & Contractor Overview</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
@@ -234,7 +318,61 @@ const SawmillDashboard = () => {
         </div>
       </div>
 
-      {/* Main Stats */}
+      {/* Production/Dispatch Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalOrders || 0}</div>
+            <p className="text-xs text-muted-foreground">{stats?.pendingOrders || 0} pending</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Produced</CardTitle>
+            <Package className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats?.totalProduced || 0}</div>
+            <p className="text-xs text-muted-foreground">Total Produced</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Dispatched</CardTitle>
+            <Truck className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats?.totalDispatched || 0}</div>
+            <p className="text-xs text-muted-foreground">Total Dispatched</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Balance</CardTitle>
+            <Package className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{stats?.balanceQty || 0}</div>
+            <p className="text-xs text-muted-foreground">Pending Dispatch</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Contractor Due</CardTitle>
+            <Wallet className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(stats?.totalContractorBalance || 0)}</div>
+            <p className="text-xs text-muted-foreground">{stats?.contractorCount} Contractors</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sawmill Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -268,18 +406,18 @@ const SawmillDashboard = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Contractor Balance</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Contractors</CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats?.totalContractorBalance || 0)}</div>
-            <p className="text-xs text-muted-foreground">{stats?.contractorCount} Contractors</p>
+            <div className="text-2xl font-bold text-blue-600">{stats?.contractorCount}</div>
+            <p className="text-xs text-muted-foreground">Working Contractors</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Output Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Output Breakdown & Orders */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Output Breakdown</CardTitle>
@@ -313,6 +451,32 @@ const SawmillDashboard = () => {
                 <Badge variant="secondary">{getOutputPercent(stats?.sawdustCFT || 0)}%</Badge>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {orders.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No orders found</p>
+            ) : (
+              <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                {orders.map((o) => (
+                  <div key={o.id} className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium">{o.order_no}</span>
+                      <p className="text-xs text-muted-foreground">{o.customer_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={getStatusColor(o.status)}>{o.status}</Badge>
+                      <p className="text-xs text-muted-foreground">Bal: {o.balance}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -363,12 +527,14 @@ const SawmillDashboard = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Contractors</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Net Outflow</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats?.contractorCount}</div>
-            <p className="text-xs text-muted-foreground">Working Contractors</p>
+            <div className="text-2xl font-bold text-purple-600">
+              {formatCurrency((stats?.totalPayments || 0) + (stats?.totalExpenses || 0))}
+            </div>
+            <p className="text-xs text-muted-foreground">Payments + Expenses</p>
           </CardContent>
         </Card>
       </div>
