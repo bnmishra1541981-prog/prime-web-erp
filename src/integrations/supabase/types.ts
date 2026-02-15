@@ -1208,6 +1208,7 @@ export type Database = {
       }
       sawmill_logs: {
         Row: {
+          cbm: number | null
           cft: number | null
           company_id: string
           created_at: string | null
@@ -1229,6 +1230,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cbm?: number | null
           cft?: number | null
           company_id: string
           created_at?: string | null
@@ -1250,6 +1252,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cbm?: number | null
           cft?: number | null
           company_id?: string
           created_at?: string | null

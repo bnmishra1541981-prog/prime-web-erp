@@ -27,13 +27,12 @@ interface ParsedLog {
   error?: string;
 }
 
-// CBM to CFT conversion: 1 CBM = 35.3147 CFT
-const cbmToCft = (cbm: number): number => cbm * 35.3147;
+// CBM to CFT conversion for logs: 1 CBM = 27.74 CFT
+const cbmToCft = (cbm: number): number => cbm * 27.74;
 
-// CFT = (Girth_inch² × Length_ft) / 2304
+// CFT = (Girth_inch² × Length_meter × 2.2072) / 10000
 const calculateCFT = (girthInch: number, lengthMeter: number): number => {
-  const lengthFeet = lengthMeter * 3.28084;
-  return (girthInch * girthInch * lengthFeet) / 2304;
+  return (girthInch * girthInch * lengthMeter * 2.2072) / 10000;
 };
 
 // SED (cm) to Girth (inch): SED is diameter in cm, Girth = π × diameter, convert to inches
@@ -228,7 +227,10 @@ const LogUpload = () => {
         saw_mill_id: selectedMill || null,
         tag_number: row.barcode,
         girth_cm: row.girth_cm,
+        girth_inch: row.girth_inch,
         length_meter: row.len,
+        cbm: row.cbm || 0,
+        cft: row.cft,
         purchase_rate: 0,
         total_amount: 0,
         supplier_name: null,

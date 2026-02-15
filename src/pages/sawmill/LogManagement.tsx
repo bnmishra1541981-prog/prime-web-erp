@@ -69,7 +69,7 @@ const LogManagement = () => {
   const tagInputRef = useRef<HTMLInputElement>(null);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [qrScanMode, setQrScanMode] = useState<"lookup" | "add">("lookup");
-  const [stats, setStats] = useState({ total_count: 0, total_cft: 0, available_count: 0, in_process_count: 0, processed_count: 0 });
+  const [stats, setStats] = useState({ total_count: 0, total_cft: 0, available_count: 0, available_cft: 0, in_process_count: 0, in_process_cft: 0, processed_count: 0, processed_cft: 0 });
 
   useEffect(() => {
     if (user) fetchCompanies();
@@ -135,7 +135,8 @@ const LogManagement = () => {
   };
 
   const calculateCFT = (girthCm: number, lengthM: number) => {
-    return (girthCm * girthCm * lengthM * 2.2072) / 10000;
+    const girthInch = girthCm / 2.54;
+    return (girthInch * girthInch * lengthM * 2.2072) / 10000;
   };
 
   const handleSubmit = async () => {
@@ -147,12 +148,14 @@ const LogManagement = () => {
     setSaving(true);
     const girthCm = parseFloat(form.girth_cm);
     const lengthM = parseFloat(form.length_meter);
+    const girthInch = girthCm / 2.54;
+    const cft = calculateCFT(girthCm, lengthM);
     const qrData = JSON.stringify({
       tag: form.tag_number,
       girth_cm: girthCm,
       length_m: lengthM,
       grade: form.grade,
-      cft: calculateCFT(girthCm, lengthM).toFixed(3),
+      cft: cft.toFixed(3),
     });
 
     const payload = {
@@ -160,7 +163,9 @@ const LogManagement = () => {
       saw_mill_id: form.saw_mill_id || null,
       tag_number: form.tag_number,
       girth_cm: girthCm,
+      girth_inch: girthInch,
       length_meter: lengthM,
+      cft: cft,
       grade: form.grade,
       notes: form.notes || null,
       qr_data: qrData,
@@ -407,7 +412,7 @@ const LogManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{availableCount}</div>
-            <p className="text-xs text-muted-foreground">Ready for use</p>
+            <p className="text-xs text-muted-foreground">{(stats.available_cft || 0).toFixed(3)} CFT</p>
           </CardContent>
         </Card>
         <Card>
@@ -416,7 +421,7 @@ const LogManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{inProcessCount}</div>
-            <p className="text-xs text-muted-foreground">Being processed</p>
+            <p className="text-xs text-muted-foreground">{(stats.in_process_cft || 0).toFixed(3)} CFT</p>
           </CardContent>
         </Card>
         <Card>
@@ -425,7 +430,7 @@ const LogManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-600">{processedCount}</div>
-            <p className="text-xs text-muted-foreground">Completed</p>
+            <p className="text-xs text-muted-foreground">{(stats.processed_cft || 0).toFixed(3)} CFT</p>
           </CardContent>
         </Card>
       </div>
