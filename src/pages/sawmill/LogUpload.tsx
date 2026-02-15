@@ -172,7 +172,7 @@ const LogUpload = () => {
         const cbmProvided = cleanNumericValue(findVal(row, ["CBM", "Cbm", "cbm"]));
 
         const girthInch = sedToGirthInch(sed);
-        const girthCm = sed * Math.PI;
+        const girthCm = Math.round(sed * Math.PI);
 
         let cft = 0;
         if (cbmProvided > 0) {
