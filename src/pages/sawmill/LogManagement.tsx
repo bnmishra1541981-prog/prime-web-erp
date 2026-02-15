@@ -79,7 +79,7 @@ const LogManagement = () => {
       fetchSawMills();
       fetchLogs();
     }
-  }, [selectedCompany, filterStatus, filterMill]);
+  }, [selectedCompany, filterMill]);
 
   const fetchCompanies = async () => {
     const { data } = await supabase.from("companies").select("id, name").order("name");
@@ -108,9 +108,6 @@ const LogManagement = () => {
       .eq("company_id", selectedCompany)
       .order("created_at", { ascending: false });
 
-    if (filterStatus !== "all") {
-      query = query.eq("status", filterStatus);
-    }
     if (filterMill !== "all") {
       query = query.eq("saw_mill_id", filterMill);
     }
@@ -243,14 +240,19 @@ const LogManagement = () => {
     }
   };
 
-  const filteredLogs = logs.filter((log) =>
-    searchTag ? log.tag_number.toLowerCase().includes(searchTag.toLowerCase()) : true
-  );
+  // Stats from ALL logs (unfiltered by status/search)
+  const totalLogsCount = logs.length;
+  const totalCFT = logs.reduce((sum, log) => sum + Number(log.cft), 0);
+  const availableCount = logs.filter((l) => l.status === "available").length;
+  const inProcessCount = logs.filter((l) => l.status === "in_process").length;
+  const processedCount = logs.filter((l) => l.status === "processed").length;
 
-  const totalCFT = filteredLogs.reduce((sum, log) => sum + Number(log.cft), 0);
-  const availableCount = filteredLogs.filter((l) => l.status === "available").length;
-  const inProcessCount = filteredLogs.filter((l) => l.status === "in_process").length;
-  const processedCount = filteredLogs.filter((l) => l.status === "processed").length;
+  // Filtered logs for table display
+  const filteredLogs = logs.filter((log) => {
+    const matchesSearch = searchTag ? log.tag_number.toLowerCase().includes(searchTag.toLowerCase()) : true;
+    const matchesStatus = filterStatus !== "all" ? log.status === filterStatus : true;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-6">
@@ -380,7 +382,7 @@ const LogManagement = () => {
             <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{filteredLogs.length}</div>
+            <div className="text-2xl font-bold">{totalLogsCount}</div>
             <p className="text-xs text-muted-foreground">{totalCFT.toFixed(2)} Total CFT</p>
           </CardContent>
         </Card>
