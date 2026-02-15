@@ -56,9 +56,9 @@ const createEmptyRow = (): FormRow => ({
   grade: "",
 });
 
-// CFT calculation: girth (inches) × girth (inches) × length (meters) × 2.2072 / 10000
-const calculateRowCFT = (girthInches: string, lengthMeters: string, quantity: string): number => {
-  const girth = parseFloat(girthInches) || 0;
+// CFT calculation: girth (cm) × girth (cm) × length (meters) × 2.2072 / 10000
+const calculateRowCFT = (girthCm: string, lengthMeters: string, quantity: string): number => {
+  const girth = parseFloat(girthCm) || 0;
   const len = parseFloat(lengthMeters) || 0;
   const qty = parseFloat(quantity) || 1;
   return (girth * girth * len * 2.2072 * qty) / 10000;
@@ -196,8 +196,8 @@ const SawmillProductionEntry = () => {
       return;
     }
 
-    const girthInch = data.girth_inch || (data.girth_cm / 2.54);
-    const cft = calculateRowCFT(girthInch.toString(), data.length_meter.toString(), "1");
+    const girthCm = data.girth_cm;
+    const cft = calculateRowCFT(girthCm.toString(), data.length_meter.toString(), "1");
 
     setRows(prevRows =>
       prevRows.map(row => {
@@ -207,7 +207,7 @@ const SawmillProductionEntry = () => {
           ...row,
           tag_number: tagNumber,
           log_id: data.id,
-          girth: girthInch.toFixed(2),
+          girth: girthCm.toString(),
           length: data.length_meter.toString(),
           quantity: "1",
           grade: data.grade || "",
@@ -525,7 +525,7 @@ const SawmillProductionEntry = () => {
                     <TableRow className="bg-muted/50">
                       <TableHead className="w-[60px]">S.No</TableHead>
                       <TableHead>Tag No.</TableHead>
-                      <TableHead>Girth (inch) *</TableHead>
+                      <TableHead>Girth (cm) *</TableHead>
                       <TableHead>Length (mtr) *</TableHead>
                       <TableHead>Grade</TableHead>
                       <TableHead>Qty</TableHead>

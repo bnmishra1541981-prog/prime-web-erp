@@ -125,8 +125,7 @@ const LogManagement = () => {
   };
 
   const calculateCFT = (girthCm: number, lengthM: number) => {
-    const girthInch = girthCm / 2.54;
-    return (girthInch * girthInch * lengthM * 2.2072) / 10000;
+    return (girthCm * girthCm * lengthM * 2.2072) / 10000;
   };
 
   const handleSubmit = async () => {
