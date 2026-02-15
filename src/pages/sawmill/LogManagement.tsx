@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Plus, QrCode, Search, TreeDeciduous, Edit2, Trash2, Copy, ScanLine, Camera } from "lucide-react";
+import { Loader2, Plus, QrCode, Search, TreeDeciduous, Edit2, Trash2, Copy, ScanLine, Camera, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import QrScanner from "@/components/sawmill/QrScanner";
@@ -75,6 +75,23 @@ const LogManagement = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      if (sortDirection === "asc") setSortDirection("desc");
+      else { setSortColumn(null); setSortDirection("asc"); }
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDirection === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -317,6 +334,23 @@ const LogManagement = () => {
     const matchesSearch = searchTag ? log.tag_number.toLowerCase().includes(searchTag.toLowerCase()) : true;
     const matchesStatus = filterStatus !== "all" ? log.status === filterStatus : true;
     return matchesSearch && matchesStatus;
+  }).sort((a, b) => {
+    if (!sortColumn) return 0;
+    let valA: any, valB: any;
+    switch (sortColumn) {
+      case "girth_cm": valA = a.girth_cm; valB = b.girth_cm; break;
+      case "girth_inch": valA = Number(a.girth_inch); valB = Number(b.girth_inch); break;
+      case "length_meter": valA = a.length_meter; valB = b.length_meter; break;
+      case "grade": valA = a.grade || ""; valB = b.grade || ""; break;
+      case "cft": valA = Number(a.cft); valB = Number(b.cft); break;
+      case "status": valA = a.status; valB = b.status; break;
+      default: return 0;
+    }
+    if (typeof valA === "string") {
+      const cmp = valA.localeCompare(valB);
+      return sortDirection === "asc" ? cmp : -cmp;
+    }
+    return sortDirection === "asc" ? valA - valB : valB - valA;
   });
 
   return (
@@ -637,12 +671,24 @@ const LogManagement = () => {
                         />
                       </TableHead>
                       <TableHead>Tag #</TableHead>
-                      <TableHead>Girth (cm)</TableHead>
-                      <TableHead>Girth (inch)</TableHead>
-                      <TableHead>Length (m)</TableHead>
-                      <TableHead>Grade</TableHead>
-                      <TableHead>CFT</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("girth_cm")}>
+                        <span className="flex items-center">Girth (cm)<SortIcon column="girth_cm" /></span>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("girth_inch")}>
+                        <span className="flex items-center">Girth (inch)<SortIcon column="girth_inch" /></span>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("length_meter")}>
+                        <span className="flex items-center">Length (m)<SortIcon column="length_meter" /></span>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("grade")}>
+                        <span className="flex items-center">Grade<SortIcon column="grade" /></span>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("cft")}>
+                        <span className="flex items-center">CFT<SortIcon column="cft" /></span>
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("status")}>
+                        <span className="flex items-center">Status<SortIcon column="status" /></span>
+                      </TableHead>
                       <TableHead>QR</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
