@@ -687,6 +687,47 @@ export type Database = {
           },
         ]
       }
+      product_rates: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          product_type: string
+          rate_per_unit: number
+          unit: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_type: string
+          rate_per_unit?: number
+          unit?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_type?: string
+          rate_per_unit?: number
+          unit?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_rates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_entries: {
         Row: {
           created_at: string | null
@@ -1111,6 +1152,7 @@ export type Database = {
           description: string | null
           expense_date: string
           id: string
+          machine_no: string | null
           saw_mill_id: string | null
           voucher_id: string | null
         }
@@ -1123,6 +1165,7 @@ export type Database = {
           description?: string | null
           expense_date?: string
           id?: string
+          machine_no?: string | null
           saw_mill_id?: string | null
           voucher_id?: string | null
         }
@@ -1135,6 +1178,7 @@ export type Database = {
           description?: string | null
           expense_date?: string
           id?: string
+          machine_no?: string | null
           saw_mill_id?: string | null
           voucher_id?: string | null
         }
@@ -1173,11 +1217,15 @@ export type Database = {
           grade: string | null
           id: string
           length_meter: number
+          lot_no: string | null
           notes: string | null
+          purchase_rate: number | null
           qr_data: string | null
           saw_mill_id: string | null
           status: string
+          supplier_name: string | null
           tag_number: string
+          total_amount: number | null
           updated_at: string | null
         }
         Insert: {
@@ -1190,11 +1238,15 @@ export type Database = {
           grade?: string | null
           id?: string
           length_meter: number
+          lot_no?: string | null
           notes?: string | null
+          purchase_rate?: number | null
           qr_data?: string | null
           saw_mill_id?: string | null
           status?: string
+          supplier_name?: string | null
           tag_number: string
+          total_amount?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -1207,11 +1259,15 @@ export type Database = {
           grade?: string | null
           id?: string
           length_meter?: number
+          lot_no?: string | null
           notes?: string | null
+          purchase_rate?: number | null
           qr_data?: string | null
           saw_mill_id?: string | null
           status?: string
+          supplier_name?: string | null
           tag_number?: string
+          total_amount?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1233,6 +1289,7 @@ export type Database = {
       }
       sawmill_output_entries: {
         Row: {
+          amount: number | null
           cft: number
           company_id: string
           created_at: string | null
@@ -1245,6 +1302,7 @@ export type Database = {
           output_type: string
           production_entry_id: string | null
           quantity: number
+          rate_per_unit: number | null
           saw_mill_id: string | null
           size: string | null
           updated_at: string | null
@@ -1252,6 +1310,7 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          amount?: number | null
           cft: number
           company_id: string
           created_at?: string | null
@@ -1264,6 +1323,7 @@ export type Database = {
           output_type: string
           production_entry_id?: string | null
           quantity?: number
+          rate_per_unit?: number | null
           saw_mill_id?: string | null
           size?: string | null
           updated_at?: string | null
@@ -1271,6 +1331,7 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          amount?: number | null
           cft?: number
           company_id?: string
           created_at?: string | null
@@ -1283,6 +1344,7 @@ export type Database = {
           output_type?: string
           production_entry_id?: string | null
           quantity?: number
+          rate_per_unit?: number | null
           saw_mill_id?: string | null
           size?: string | null
           updated_at?: string | null
@@ -1325,10 +1387,12 @@ export type Database = {
           id: string
           length: number
           log_id: string | null
+          machine_no: string | null
           notes: string | null
           quantity: number
           rate_per_cft: number
           saw_mill_id: string | null
+          team_name: string | null
           total_amount: number
           updated_at: string | null
         }
@@ -1343,10 +1407,12 @@ export type Database = {
           id?: string
           length: number
           log_id?: string | null
+          machine_no?: string | null
           notes?: string | null
           quantity?: number
           rate_per_cft: number
           saw_mill_id?: string | null
+          team_name?: string | null
           total_amount: number
           updated_at?: string | null
         }
@@ -1361,10 +1427,12 @@ export type Database = {
           id?: string
           length?: number
           log_id?: string | null
+          machine_no?: string | null
           notes?: string | null
           quantity?: number
           rate_per_cft?: number
           saw_mill_id?: string | null
+          team_name?: string | null
           total_amount?: number
           updated_at?: string | null
         }

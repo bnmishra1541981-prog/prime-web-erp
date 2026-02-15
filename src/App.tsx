@@ -55,6 +55,9 @@ import SawmillExpenses from "./pages/sawmill/Expenses";
 import SawmillEmployees from "./pages/sawmill/Employees";
 import SawmillReports from "./pages/sawmill/SawmillReports";
 import LogManagement from "./pages/sawmill/LogManagement";
+import LogUpload from "./pages/sawmill/LogUpload";
+import YieldReport from "./pages/sawmill/YieldReport";
+import ProductRates from "./pages/sawmill/ProductRates";
 
 const queryClient = new QueryClient();
 
@@ -313,6 +316,9 @@ const AppRoutes = () => {
       <Route path="/sawmill/employees" element={<ProtectedRoute><SawmillEmployees /></ProtectedRoute>} />
       <Route path="/sawmill/reports" element={<ProtectedRoute><SawmillReports /></ProtectedRoute>} />
       <Route path="/sawmill/logs" element={<ProtectedRoute><LogManagement /></ProtectedRoute>} />
+      <Route path="/sawmill/log-upload" element={<ProtectedRoute><LogUpload /></ProtectedRoute>} />
+      <Route path="/sawmill/yield-report" element={<ProtectedRoute><YieldReport /></ProtectedRoute>} />
+      <Route path="/sawmill/product-rates" element={<ProtectedRoute><ProductRates /></ProtectedRoute>} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
