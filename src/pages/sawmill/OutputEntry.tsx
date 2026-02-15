@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Package, Plus, TrendingUp } from "lucide-react";
+import { Loader2, Package, Plus, TrendingUp, Pencil, Trash2, X, Check } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 
 interface OutputEntry {
@@ -45,6 +46,8 @@ const SawmillOutputEntry = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [todayInputCFT, setTodayInputCFT] = useState(0);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>({});
 
   const [formData, setFormData] = useState({
     entry_date: new Date().toISOString().split("T")[0],
@@ -188,6 +191,69 @@ const SawmillOutputEntry = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
     setSubmitting(false);
+  };
+
+  const startEdit = (entry: OutputEntry) => {
+    setEditingId(entry.id);
+    setEditData({
+      output_type: entry.output_type,
+      size: entry.size || "",
+      height: entry.height?.toString() || "",
+      width: entry.width?.toString() || "",
+      length: entry.length?.toString() || "",
+      quantity: entry.quantity.toString(),
+      weight: entry.weight?.toString() || "",
+      notes: entry.notes || "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditData({});
+  };
+
+  const saveEdit = async (id: string) => {
+    const outputType = OUTPUT_TYPES.find(t => t.id === editData.output_type);
+    const isWeight = outputType?.useWeight || false;
+    
+    let cft = 0;
+    if (!isWeight) {
+      const h = parseFloat(editData.height) || 0;
+      const w = parseFloat(editData.width) || 0;
+      const l = parseFloat(editData.length) || 0;
+      const q = parseFloat(editData.quantity) || 1;
+      cft = (h * w * l * q) / 144;
+    }
+
+    const { error } = await supabase.from("sawmill_output_entries").update({
+      output_type: editData.output_type,
+      size: editData.size || null,
+      height: editData.height ? parseFloat(editData.height) : null,
+      width: editData.width ? parseFloat(editData.width) : null,
+      length: editData.length ? parseFloat(editData.length) : null,
+      quantity: parseFloat(editData.quantity) || 1,
+      cft: isWeight ? 0 : cft,
+      weight: editData.weight ? parseFloat(editData.weight) : null,
+      notes: editData.notes || null,
+    }).eq("id", id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: "Entry updated" });
+      setEditingId(null);
+      fetchTodayData();
+    }
+  };
+
+  const deleteEntry = async (id: string) => {
+    const { error } = await supabase.from("sawmill_output_entries").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Deleted", description: "Entry removed" });
+      fetchTodayData();
+    }
   };
 
   // Calculate output percentages
@@ -472,6 +538,7 @@ const SawmillOutputEntry = () => {
                       <TableHead>Size/Dimensions</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead className="text-right">CFT/Kg</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -483,15 +550,58 @@ const SawmillOutputEntry = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {["firewood", "sawdust"].includes(entry.output_type) 
-                            ? "-" 
-                            : entry.size || `${entry.height}×${entry.width}×${entry.length}`}
+                          {editingId === entry.id ? (
+                            ["firewood", "sawdust"].includes(editData.output_type) ? (
+                              <Input className="w-24" type="number" step="0.1" value={editData.weight} onChange={(e) => setEditData({...editData, weight: e.target.value})} placeholder="Kg" />
+                            ) : (
+                              <div className="flex gap-1">
+                                <Input className="w-14" type="number" step="0.25" value={editData.height} onChange={(e) => setEditData({...editData, height: e.target.value})} placeholder="H" />
+                                <Input className="w-14" type="number" step="0.25" value={editData.width} onChange={(e) => setEditData({...editData, width: e.target.value})} placeholder="W" />
+                                <Input className="w-14" type="number" step="0.5" value={editData.length} onChange={(e) => setEditData({...editData, length: e.target.value})} placeholder="L" />
+                              </div>
+                            )
+                          ) : (
+                            ["firewood", "sawdust"].includes(entry.output_type)
+                              ? "-"
+                              : entry.size || `${entry.height}×${entry.width}×${entry.length}`
+                          )}
                         </TableCell>
-                        <TableCell className="text-right">{entry.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          {editingId === entry.id ? (
+                            <Input className="w-16 ml-auto" type="number" value={editData.quantity} onChange={(e) => setEditData({...editData, quantity: e.target.value})} />
+                          ) : entry.quantity}
+                        </TableCell>
                         <TableCell className="text-right font-medium">
                           {["firewood", "sawdust"].includes(entry.output_type)
                             ? `${entry.weight?.toFixed(1)} kg`
                             : `${entry.cft.toFixed(2)} CFT`}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {editingId === entry.id ? (
+                            <div className="flex gap-1 justify-end">
+                              <Button size="icon" variant="ghost" onClick={() => saveEdit(entry.id)}><Check className="h-4 w-4 text-green-600" /></Button>
+                              <Button size="icon" variant="ghost" onClick={cancelEdit}><X className="h-4 w-4" /></Button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-1 justify-end">
+                              <Button size="icon" variant="ghost" onClick={() => startEdit(entry)}><Pencil className="h-4 w-4" /></Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="icon" variant="ghost"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Entry?</AlertDialogTitle>
+                                    <AlertDialogDescription>This will permanently remove this output entry.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteEntry(entry.id)}>Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
