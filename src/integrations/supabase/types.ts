@@ -1162,6 +1162,75 @@ export type Database = {
           },
         ]
       }
+      sawmill_logs: {
+        Row: {
+          cft: number | null
+          company_id: string
+          created_at: string | null
+          created_by: string
+          girth_cm: number
+          girth_inch: number | null
+          grade: string | null
+          id: string
+          length_meter: number
+          notes: string | null
+          qr_data: string | null
+          saw_mill_id: string | null
+          status: string
+          tag_number: string
+          updated_at: string | null
+        }
+        Insert: {
+          cft?: number | null
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          girth_cm: number
+          girth_inch?: number | null
+          grade?: string | null
+          id?: string
+          length_meter: number
+          notes?: string | null
+          qr_data?: string | null
+          saw_mill_id?: string | null
+          status?: string
+          tag_number: string
+          updated_at?: string | null
+        }
+        Update: {
+          cft?: number | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          girth_cm?: number
+          girth_inch?: number | null
+          grade?: string | null
+          id?: string
+          length_meter?: number
+          notes?: string | null
+          qr_data?: string | null
+          saw_mill_id?: string | null
+          status?: string
+          tag_number?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sawmill_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_logs_saw_mill_id_fkey"
+            columns: ["saw_mill_id"]
+            isOneToOne: false
+            referencedRelation: "saw_mills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sawmill_output_entries: {
         Row: {
           cft: number
@@ -1255,6 +1324,7 @@ export type Database = {
           girth: number
           id: string
           length: number
+          log_id: string | null
           notes: string | null
           quantity: number
           rate_per_cft: number
@@ -1272,6 +1342,7 @@ export type Database = {
           girth: number
           id?: string
           length: number
+          log_id?: string | null
           notes?: string | null
           quantity?: number
           rate_per_cft: number
@@ -1289,6 +1360,7 @@ export type Database = {
           girth?: number
           id?: string
           length?: number
+          log_id?: string | null
           notes?: string | null
           quantity?: number
           rate_per_cft?: number
@@ -1309,6 +1381,13 @@ export type Database = {
             columns: ["contractor_id"]
             isOneToOne: false
             referencedRelation: "sawmill_contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sawmill_production_entries_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "sawmill_logs"
             referencedColumns: ["id"]
           },
           {

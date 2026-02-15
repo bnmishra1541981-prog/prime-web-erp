@@ -49,6 +49,7 @@ const menuItems = [
       { title: 'Saw Mills', url: '/sawmill/mills', icon: Factory },
       { title: 'Contractors', url: '/sawmill/contractors', icon: Users },
       { title: 'Production Entry', url: '/sawmill/production', icon: ClipboardList },
+      { title: 'Log Inventory', url: '/sawmill/logs', icon: TreeDeciduous },
       { title: 'Output Entry', url: '/sawmill/output', icon: Package },
       { title: 'Payments', url: '/sawmill/payments', icon: Wallet },
       { title: 'Expenses', url: '/sawmill/expenses', icon: Receipt },

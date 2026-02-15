@@ -24,6 +24,12 @@ interface DashboardStats {
   totalProduced: number;
   totalDispatched: number;
   balanceQty: number;
+  // Log inventory stats
+  totalLogs: number;
+  availableLogs: number;
+  inProcessLogs: number;
+  processedLogs: number;
+  logsTotalCFT: number;
 }
 
 interface Contractor {
@@ -183,6 +189,16 @@ const SawmillDashboard = () => {
       .select("order_id, dispatched_quantity")
       .gte("dispatch_date", dateFilter);
 
+    // Fetch log inventory
+    let logsQuery = supabase
+      .from("sawmill_logs")
+      .select("status, cft")
+      .eq("company_id", selectedCompany);
+    if (selectedMill !== "all") {
+      logsQuery = logsQuery.eq("saw_mill_id", selectedMill);
+    }
+    const { data: logsData } = await logsQuery;
+
     // Calculate production stats
     const productionByOrder = new Map<string, number>();
     orderProductionData?.forEach(e => {
@@ -227,6 +243,13 @@ const SawmillDashboard = () => {
     const totalPayments = paymentData?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
     const totalExpenses = expenseData?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
 
+    // Calculate log stats
+    const totalLogs = logsData?.length || 0;
+    const availableLogs = logsData?.filter(l => l.status === 'available').length || 0;
+    const inProcessLogs = logsData?.filter(l => l.status === 'in_process').length || 0;
+    const processedLogs = logsData?.filter(l => l.status === 'processed').length || 0;
+    const logsTotalCFT = logsData?.reduce((sum, l) => sum + Number(l.cft), 0) || 0;
+
     setStats({
       totalInputCFT,
       totalOutputCFT,
@@ -243,6 +266,11 @@ const SawmillDashboard = () => {
       totalProduced,
       totalDispatched,
       balanceQty: totalOrderedQty - totalDispatched,
+      totalLogs,
+      availableLogs,
+      inProcessLogs,
+      processedLogs,
+      logsTotalCFT,
     });
     setContractors(contractorData || []);
     setOrders(orderSummaries.slice(0, 5)); // Top 5 orders
@@ -372,6 +400,49 @@ const SawmillDashboard = () => {
         </Card>
       </div>
 
+      {/* Log Inventory Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
+            <TreeDeciduous className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalLogs || 0}</div>
+            <p className="text-xs text-muted-foreground">{stats?.logsTotalCFT?.toFixed(2) || 0} Total CFT</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Available Logs</CardTitle>
+            <TreeDeciduous className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{stats?.availableLogs || 0}</div>
+            <p className="text-xs text-muted-foreground">Ready for processing</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">In Process</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.inProcessLogs || 0}</div>
+            <p className="text-xs text-muted-foreground">Being processed</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Processed</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.processedLogs || 0}</div>
+            <p className="text-xs text-muted-foreground">Completed</p>
+          </CardContent>
+        </Card>
+      </div>
       {/* Sawmill Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
