@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, TreeDeciduous, Plus, Trash2, Edit2, Save, X, Copy } from "lucide-react";
+import { Loader2, TreeDeciduous, Plus, Trash2, Edit2, Save, X, Copy, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
 
@@ -29,6 +29,8 @@ interface ProductionEntry {
 
 interface FormRow {
   id: string;
+  tag_number: string;
+  log_id: string | null;
   girth: string;
   length: string;
   quantity: string;
@@ -36,10 +38,13 @@ interface FormRow {
   notes: string;
   cft: number;
   total_amount: number;
+  grade: string;
 }
 
 const createEmptyRow = (): FormRow => ({
   id: crypto.randomUUID(),
+  tag_number: "",
+  log_id: null,
   girth: "",
   length: "",
   quantity: "1",
@@ -47,6 +52,7 @@ const createEmptyRow = (): FormRow => ({
   notes: "",
   cft: 0,
   total_amount: 0,
+  grade: "",
 });
 
 // CFT calculation: girth (inches) × girth (inches) × length (meters) × 2.2072 / 10000
@@ -168,12 +174,57 @@ const SawmillProductionEntry = () => {
     }
   };
 
+  // Tag number lookup for a row
+  const lookupTag = async (rowId: string, tagNumber: string) => {
+    if (!tagNumber || !selectedCompany) return;
+    
+    const { data, error } = await supabase
+      .from("sawmill_logs")
+      .select("*")
+      .eq("company_id", selectedCompany)
+      .eq("tag_number", tagNumber)
+      .eq("status", "available")
+      .maybeSingle();
+    
+    if (error || !data) {
+      toast({ title: "Not Found", description: `No available log found with tag "${tagNumber}"`, variant: "destructive" });
+      return;
+    }
+
+    const girthInch = data.girth_inch || (data.girth_cm / 2.54);
+    const cft = calculateRowCFT(girthInch.toString(), data.length_meter.toString(), "1");
+
+    setRows(prevRows =>
+      prevRows.map(row => {
+        if (row.id !== rowId) return row;
+        const rate = parseFloat(row.rate_per_cft) || 0;
+        return {
+          ...row,
+          tag_number: tagNumber,
+          log_id: data.id,
+          girth: girthInch.toFixed(2),
+          length: data.length_meter.toString(),
+          quantity: "1",
+          grade: data.grade || "",
+          cft: cft,
+          total_amount: cft * rate,
+        };
+      })
+    );
+  };
+
   const updateRow = (rowId: string, field: keyof FormRow, value: string) => {
     setRows(prevRows => 
       prevRows.map(row => {
         if (row.id !== rowId) return row;
         
         const updatedRow = { ...row, [field]: value };
+
+        // Clear log link if user manually changes girth/length
+        if ((field === 'girth' || field === 'length') && row.log_id) {
+          updatedRow.log_id = null;
+          updatedRow.tag_number = "";
+        }
         
         // Recalculate CFT and total when relevant fields change
         if (field === 'girth' || field === 'length' || field === 'quantity' || field === 'rate_per_cft') {
@@ -246,15 +297,25 @@ const SawmillProductionEntry = () => {
         saw_mill_id: sawMillId || null,
         contractor_id: contractorId,
         entry_date: entryDate,
-        girth: parseFloat(row.girth), // Store as inches directly
-        length: parseFloat(row.length), // Store as meters
+        girth: parseFloat(row.girth),
+        length: parseFloat(row.length),
         quantity: parseFloat(row.quantity) || 1,
         cft: row.cft,
         rate_per_cft: parseFloat(row.rate_per_cft),
         total_amount: row.total_amount,
         notes: row.notes || null,
+        log_id: row.log_id || null,
         created_by: user?.id,
       }));
+
+      // Update log status to 'in-process' for linked logs
+      const logIds = validRows.filter(r => r.log_id).map(r => r.log_id!);
+      if (logIds.length > 0) {
+        await supabase
+          .from("sawmill_logs")
+          .update({ status: "in-process" })
+          .in("id", logIds);
+      }
 
       const { error } = await supabase.from("sawmill_production_entries").insert(entriesToInsert);
 
@@ -280,6 +341,8 @@ const SawmillProductionEntry = () => {
     const cft = calculateRowCFT(entry.girth.toString(), entry.length.toString(), entry.quantity.toString());
     setEditRow({
       id: entry.id,
+      tag_number: "",
+      log_id: null,
       girth: entry.girth.toString(),
       length: entry.length.toString(),
       quantity: entry.quantity.toString(),
@@ -287,6 +350,7 @@ const SawmillProductionEntry = () => {
       notes: entry.notes || "",
       cft: cft,
       total_amount: cft * entry.rate_per_cft,
+      grade: "",
     });
   };
 
@@ -454,9 +518,11 @@ const SawmillProductionEntry = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="w-[80px]">S.No</TableHead>
+                      <TableHead className="w-[60px]">S.No</TableHead>
+                      <TableHead>Tag No.</TableHead>
                       <TableHead>Girth (inch) *</TableHead>
                       <TableHead>Length (mtr) *</TableHead>
+                      <TableHead>Grade</TableHead>
                       <TableHead>Qty</TableHead>
                       <TableHead>Rate/CFT *</TableHead>
                       <TableHead>CFT</TableHead>
@@ -469,6 +535,33 @@ const SawmillProductionEntry = () => {
                     {rows.map((row, index) => (
                       <TableRow key={row.id} className={focusedRowId === row.id ? "bg-muted/30" : ""}>
                         <TableCell className="font-medium">{index + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 items-center">
+                            <Input
+                              value={row.tag_number}
+                              onChange={(e) => updateRow(row.id, 'tag_number', e.target.value)}
+                              onFocus={() => setFocusedRowId(row.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  lookupTag(row.id, row.tag_number);
+                                }
+                              }}
+                              placeholder="Tag"
+                              className="w-20"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => lookupTag(row.id, row.tag_number)}
+                              title="Lookup tag"
+                            >
+                              <Search className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Input
                             type="number"
@@ -489,6 +582,16 @@ const SawmillProductionEntry = () => {
                             onFocus={() => setFocusedRowId(row.id)}
                             placeholder="0"
                             className="w-20"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={row.grade}
+                            onChange={(e) => updateRow(row.id, 'grade', e.target.value)}
+                            onFocus={() => setFocusedRowId(row.id)}
+                            placeholder="Grade"
+                            className="w-16"
+                            readOnly={!!row.log_id}
                           />
                         </TableCell>
                         <TableCell>
