@@ -13,22 +13,32 @@ import { Loader2, Upload, FileSpreadsheet, Download, Trash2, Check, AlertTriangl
 import * as XLSX from "xlsx";
 
 interface ParsedLog {
-  tag_no: string;
+  sn: number;
+  barcode: string;
+  lot: string;
+  grade: string;
+  len: number;
+  sed: number;
+  cbm: number;
   girth_inch: number;
-  length_meter: number;
+  girth_cm: number;
   cft: number;
-  purchase_rate: number;
-  total_amount: number;
-  supplier_name: string;
-  lot_no: string;
   valid: boolean;
   error?: string;
 }
 
-// CFT = (Girth × Girth × Length_ft) / 2304
+// CBM to CFT conversion: 1 CBM = 35.3147 CFT
+const cbmToCft = (cbm: number): number => cbm * 35.3147;
+
+// CFT = (Girth_inch² × Length_ft) / 2304
 const calculateCFT = (girthInch: number, lengthMeter: number): number => {
   const lengthFeet = lengthMeter * 3.28084;
   return (girthInch * girthInch * lengthFeet) / 2304;
+};
+
+// SED (cm) to Girth (inch): SED is diameter in cm, Girth = π × diameter, convert to inches
+const sedToGirthInch = (sedCm: number): number => {
+  return (Math.PI * sedCm) / 2.54;
 };
 
 const LogUpload = () => {
@@ -72,17 +82,25 @@ const LogUpload = () => {
 
   const downloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
-      ["Tag No", "Girth (Inches)", "Length (Meter)", "CFT (Optional)", "Purchase Rate/CFT", "Supplier Name", "Lot No"],
-      ["LOG-001", 48, 3.5, "", 250, "Supplier A", "LOT-01"],
-      ["LOG-002", 52, 4.0, "", 260, "Supplier A", "LOT-01"],
+      ["SN", "Barcode", "LOT", "Grade", "LEN", "SED", "CBM"],
+      [1, "FOBE74924", "8", "KI", 3.0, 76, 1.733],
+      [2, "FOBE74925", "8", "A", 4.8, 38, 0.433],
+      [3, "FOBE74926", "8", "K", 3.6, 54, 0.875],
     ]);
     ws["!cols"] = [
-      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 20 }, { wch: 12 },
+      { wch: 8 }, { wch: 15 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Log Purchase");
     XLSX.writeFile(wb, "log_purchase_template.xlsx");
     toast.success("Template downloaded");
+  };
+
+  const cleanNumericValue = (val: any): number => {
+    if (val === null || val === undefined || val === "") return 0;
+    const str = String(val).replace(/[$,₹\s]/g, "");
+    const num = parseFloat(str);
+    return isNaN(num) ? 0 : num;
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,26 +115,59 @@ const LogUpload = () => {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-      const parsed: ParsedLog[] = rows.map((row) => {
-        const tagNo = String(row["Tag No"] || row["tag_no"] || row["Tag"] || "").trim();
-        const girthInch = parseFloat(row["Girth (Inches)"] || row["girth_inch"] || row["Girth"] || 0);
-        const lengthMeter = parseFloat(row["Length (Meter)"] || row["length_meter"] || row["Length"] || 0);
-        const providedCFT = parseFloat(row["CFT (Optional)"] || row["CFT"] || row["cft"] || 0);
-        const rate = parseFloat(row["Purchase Rate/CFT"] || row["purchase_rate"] || row["Rate"] || 0);
-        const supplier = String(row["Supplier Name"] || row["supplier_name"] || row["Supplier"] || "").trim();
-        const lotNo = String(row["Lot No"] || row["lot_no"] || row["Lot"] || "").trim();
+      // Find header row - look for rows with SN/Barcode columns
+      const parsed: ParsedLog[] = [];
+      let snCounter = 0;
 
-        const cft = providedCFT > 0 ? providedCFT : calculateCFT(girthInch, lengthMeter);
-        const totalAmount = cft * rate;
+      for (const row of rows) {
+        // Try to find the barcode/tag field
+        const barcode = String(
+          row["Barcode"] || row["barcode"] || row["Tag No"] || row["tag_no"] || row["Tag"] || ""
+        ).trim();
+
+        if (!barcode || barcode === "Barcode" || barcode === "Tag No") continue;
+
+        snCounter++;
+        const sn = cleanNumericValue(row["SN"] || row["sn"] || row["S.No"] || snCounter);
+        const lot = String(row["LOT"] || row["Lot"] || row["lot_no"] || row["Lot No"] || "").trim();
+        const grade = String(row["Grade"] || row["grade"] || "A").trim();
+        const len = cleanNumericValue(row["LEN"] || row["Len"] || row["Length"] || row["Length (Meter)"] || row["length_meter"]);
+        const sed = cleanNumericValue(row["SED"] || row["Sed"] || row["Girth"] || row["Girth (Inches)"] || row["girth_inch"]);
+        const cbmProvided = cleanNumericValue(row["CBM"] || row["Cbm"] || row["cbm"] || row["CFT (Optional)"]);
+
+        // SED is diameter in cm, convert to girth in inches for CFT calculation
+        const girthInch = sedToGirthInch(sed);
+        const girthCm = sed * Math.PI; // circumference in cm
+
+        // Use provided CBM (convert to CFT) or calculate CFT
+        let cft = 0;
+        if (cbmProvided > 0) {
+          cft = cbmToCft(cbmProvided);
+        } else {
+          cft = calculateCFT(girthInch, len);
+        }
 
         let valid = true;
         let error = "";
-        if (!tagNo) { valid = false; error = "Tag No required"; }
-        else if (!girthInch || girthInch <= 0) { valid = false; error = "Invalid Girth"; }
-        else if (!lengthMeter || lengthMeter <= 0) { valid = false; error = "Invalid Length"; }
+        if (!barcode) { valid = false; error = "Barcode required"; }
+        else if (!sed || sed <= 0) { valid = false; error = "Invalid SED"; }
+        else if (!len || len <= 0) { valid = false; error = "Invalid Length"; }
 
-        return { tag_no: tagNo, girth_inch: girthInch, length_meter: lengthMeter, cft, purchase_rate: rate, total_amount: totalAmount, supplier_name: supplier, lot_no: lotNo, valid, error };
-      });
+        parsed.push({
+          sn,
+          barcode,
+          lot,
+          grade,
+          len,
+          sed,
+          cbm: cbmProvided,
+          girth_inch: girthInch,
+          girth_cm: girthCm,
+          cft,
+          valid,
+          error,
+        });
+      }
 
       setParsedData(parsed);
       toast.success(`${parsed.length} rows parsed from ${file.name}`);
@@ -140,16 +191,16 @@ const LogUpload = () => {
       const payload = validRows.map((row) => ({
         company_id: selectedCompany,
         saw_mill_id: selectedMill || null,
-        tag_number: row.tag_no,
-        girth_cm: row.girth_inch * 2.54, // Convert inch to cm for storage
+        tag_number: row.barcode,
+        girth_cm: row.girth_cm,
         girth_inch: row.girth_inch,
-        length_meter: row.length_meter,
+        length_meter: row.len,
         cft: row.cft,
-        purchase_rate: row.purchase_rate,
-        total_amount: row.total_amount,
-        supplier_name: row.supplier_name || null,
-        lot_no: row.lot_no || null,
-        grade: "A",
+        purchase_rate: 0,
+        total_amount: 0,
+        supplier_name: null,
+        lot_no: row.lot || null,
+        grade: row.grade || "A",
         status: "available",
         created_by: user!.id,
       }));
@@ -157,7 +208,7 @@ const LogUpload = () => {
       const { error } = await supabase.from("sawmill_logs").insert(payload);
       if (error) {
         if (error.message.includes("unique") || error.message.includes("duplicate")) {
-          toast.error("Some tag numbers already exist in the system");
+          toast.error("Some barcodes already exist in the system");
         } else {
           throw error;
         }
@@ -175,8 +226,8 @@ const LogUpload = () => {
 
   const validCount = parsedData.filter((r) => r.valid).length;
   const invalidCount = parsedData.filter((r) => !r.valid).length;
+  const totalCBM = parsedData.filter((r) => r.valid).reduce((sum, r) => sum + r.cbm, 0);
   const totalCFT = parsedData.filter((r) => r.valid).reduce((sum, r) => sum + r.cft, 0);
-  const totalAmount = parsedData.filter((r) => r.valid).reduce((sum, r) => sum + r.total_amount, 0);
 
   if (loading) {
     return (
@@ -191,7 +242,7 @@ const LogUpload = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Log Purchase Upload</h1>
-          <p className="text-muted-foreground">Upload bulk log purchase data via Excel</p>
+          <p className="text-muted-foreground">Upload bulk log purchase data via Excel (SN, Barcode, LOT, Grade, LEN, SED, CBM)</p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
@@ -215,9 +266,9 @@ const LogUpload = () => {
             Excel Upload
           </CardTitle>
           <CardDescription>
-            Upload Excel file with log purchase data. CFT will be auto-calculated if not provided.
+            Upload Excel file with columns: <strong>SN, Barcode, LOT, Grade, LEN (meters), SED (cm diameter), CBM</strong>
             <br />
-            <span className="font-medium">Formula: CFT = (Girth² × Length in feet) / 2304</span>
+            <span className="font-medium">SED = Small End Diameter (cm). System converts to Girth & calculates CFT automatically.</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -272,14 +323,14 @@ const LogUpload = () => {
             </Card>
             <Card>
               <CardContent className="pt-4">
-                <p className="text-sm text-muted-foreground">Total CFT</p>
-                <p className="text-2xl font-bold">{totalCFT.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Total CBM</p>
+                <p className="text-2xl font-bold">{totalCBM.toFixed(3)}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4">
-                <p className="text-sm text-muted-foreground">Total Amount</p>
-                <p className="text-2xl font-bold">₹{totalAmount.toFixed(0)}</p>
+                <p className="text-sm text-muted-foreground">Total CFT</p>
+                <p className="text-2xl font-bold">{totalCFT.toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
@@ -304,15 +355,14 @@ const LogUpload = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>#</TableHead>
-                      <TableHead>Tag No</TableHead>
-                      <TableHead>Girth (inch)</TableHead>
-                      <TableHead>Length (m)</TableHead>
+                      <TableHead>SN</TableHead>
+                      <TableHead>Barcode</TableHead>
+                      <TableHead>LOT</TableHead>
+                      <TableHead>Grade</TableHead>
+                      <TableHead>LEN (m)</TableHead>
+                      <TableHead>SED (cm)</TableHead>
+                      <TableHead>CBM</TableHead>
                       <TableHead>CFT</TableHead>
-                      <TableHead>Rate/CFT</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Lot</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
@@ -320,15 +370,16 @@ const LogUpload = () => {
                   <TableBody>
                     {parsedData.map((row, i) => (
                       <TableRow key={i} className={!row.valid ? "bg-destructive/5" : ""}>
-                        <TableCell>{i + 1}</TableCell>
-                        <TableCell className="font-medium">{row.tag_no}</TableCell>
-                        <TableCell>{row.girth_inch}</TableCell>
-                        <TableCell>{row.length_meter}</TableCell>
+                        <TableCell>{row.sn}</TableCell>
+                        <TableCell className="font-medium">{row.barcode}</TableCell>
+                        <TableCell>{row.lot || "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{row.grade}</Badge>
+                        </TableCell>
+                        <TableCell>{row.len}</TableCell>
+                        <TableCell>{row.sed}</TableCell>
+                        <TableCell>{row.cbm > 0 ? row.cbm.toFixed(3) : "-"}</TableCell>
                         <TableCell>{row.cft.toFixed(3)}</TableCell>
-                        <TableCell>₹{row.purchase_rate}</TableCell>
-                        <TableCell>₹{row.total_amount.toFixed(0)}</TableCell>
-                        <TableCell>{row.supplier_name || "-"}</TableCell>
-                        <TableCell>{row.lot_no || "-"}</TableCell>
                         <TableCell>
                           {row.valid ? (
                             <Badge className="bg-green-100 text-green-800"><Check className="h-3 w-3 mr-1" /> Valid</Badge>
