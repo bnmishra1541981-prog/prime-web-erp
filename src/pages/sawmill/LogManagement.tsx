@@ -69,6 +69,7 @@ const LogManagement = () => {
   const tagInputRef = useRef<HTMLInputElement>(null);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [qrScanMode, setQrScanMode] = useState<"lookup" | "add">("lookup");
+  const [stats, setStats] = useState({ total_count: 0, total_cft: 0, available_count: 0, in_process_count: 0, processed_count: 0 });
 
   useEffect(() => {
     if (user) fetchCompanies();
@@ -78,6 +79,7 @@ const LogManagement = () => {
     if (selectedCompany) {
       fetchSawMills();
       fetchLogs();
+      fetchStats();
     }
   }, [selectedCompany, filterMill]);
 
@@ -100,13 +102,24 @@ const LogManagement = () => {
     setSawMills(data || []);
   };
 
+  const fetchStats = async () => {
+    const { data, error } = await supabase.rpc("get_sawmill_logs_stats", {
+      p_company_id: selectedCompany,
+      p_mill_id: filterMill !== "all" ? filterMill : null,
+    });
+    if (!error && data) {
+      setStats(data as any);
+    }
+  };
+
   const fetchLogs = async () => {
     setLoading(true);
     let query = supabase
       .from("sawmill_logs")
       .select("*")
       .eq("company_id", selectedCompany)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(0, 4999);
 
     if (filterMill !== "all") {
       query = query.eq("saw_mill_id", filterMill);
@@ -180,6 +193,7 @@ const LogManagement = () => {
       setEditingId(null);
       setDialogOpen(false);
       fetchLogs();
+      fetchStats();
     }
     setSaving(false);
   };
@@ -205,6 +219,7 @@ const LogManagement = () => {
     } else {
       toast.success("Log deleted");
       fetchLogs();
+      fetchStats();
     }
   };
 
@@ -240,12 +255,12 @@ const LogManagement = () => {
     }
   };
 
-  // Stats from ALL logs (unfiltered by status/search)
-  const totalLogsCount = logs.length;
-  const totalCFT = logs.reduce((sum, log) => sum + Number(log.cft), 0);
-  const availableCount = logs.filter((l) => l.status === "available").length;
-  const inProcessCount = logs.filter((l) => l.status === "in_process").length;
-  const processedCount = logs.filter((l) => l.status === "processed").length;
+  // Stats from RPC (accurate, no row limit)
+  const totalLogsCount = stats.total_count;
+  const totalCFT = Number(stats.total_cft);
+  const availableCount = stats.available_count;
+  const inProcessCount = stats.in_process_count;
+  const processedCount = stats.processed_count;
 
   // Filtered logs for table display
   const filteredLogs = logs.filter((log) => {
