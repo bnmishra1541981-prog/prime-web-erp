@@ -398,7 +398,7 @@ const LogManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalLogsCount}</div>
-            <p className="text-xs text-muted-foreground">{totalCFT.toFixed(2)} Total CFT</p>
+            <p className="text-xs text-muted-foreground">{totalCFT.toFixed(3)} Total CFT</p>
           </CardContent>
         </Card>
         <Card>
