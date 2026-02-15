@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Plus, QrCode, Search, TreeDeciduous, Edit2, Trash2, Copy, ScanLine, Camera } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import QrScanner from "@/components/sawmill/QrScanner";
 
 interface SawmillLog {
@@ -70,6 +72,49 @@ const LogManagement = () => {
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [qrScanMode, setQrScanMode] = useState<"lookup" | "add">("lookup");
   const [stats, setStats] = useState({ total_count: 0, total_cft: 0, available_count: 0, available_cft: 0, in_process_count: 0, in_process_cft: 0, processed_count: 0, processed_cft: 0 });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredLogs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredLogs.map(l => l.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    const ids = Array.from(selectedIds);
+    // Delete in batches of 100
+    let failed = 0;
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+      const { error } = await supabase.from("sawmill_logs").delete().in("id", batch);
+      if (error) failed += batch.length;
+    }
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    setSelectedIds(new Set());
+    if (failed > 0) {
+      toast.error(`${failed} logs could not be deleted (may be linked to production)`);
+    } else {
+      toast.success(`${ids.length} logs deleted successfully`);
+    }
+    fetchLogs();
+    fetchStats();
+  };
 
   useEffect(() => {
     if (user) fetchCompanies();
@@ -556,6 +601,19 @@ const LogManagement = () => {
             </Select>
           </div>
 
+          {/* Bulk Actions */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <span className="text-sm font-medium">{selectedIds.size} log(s) selected</span>
+              <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+                <Trash2 className="h-4 w-4 mr-1" /> Delete Selected
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                Clear Selection
+              </Button>
+            </div>
+          )}
+
           {/* Log Table */}
           <Card>
             <CardContent className="p-0">
@@ -572,6 +630,12 @@ const LogManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[40px]">
+                        <Checkbox
+                          checked={selectedIds.size === filteredLogs.length && filteredLogs.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Tag #</TableHead>
                       <TableHead>Girth (cm)</TableHead>
                       <TableHead>Girth (inch)</TableHead>
@@ -585,7 +649,13 @@ const LogManagement = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredLogs.map((log) => (
-                      <TableRow key={log.id}>
+                      <TableRow key={log.id} data-state={selectedIds.has(log.id) ? "selected" : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(log.id)}
+                            onCheckedChange={() => toggleSelect(log.id)}
+                          />
+                        </TableCell>
                         <TableCell className="font-mono font-bold">{log.tag_number}</TableCell>
                         <TableCell>{log.girth_cm}</TableCell>
                         <TableCell>{Number(log.girth_inch).toFixed(2)}</TableCell>
@@ -621,6 +691,25 @@ const LogManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} logs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedIds.size} selected log(s). Logs linked to production entries cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {bulkDeleting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              Delete {selectedIds.size} Logs
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* QR Scanner */}
       <QrScanner
