@@ -78,6 +78,8 @@ const SawmillProductionEntry = () => {
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
   const [sawMillId, setSawMillId] = useState("");
   const [contractorId, setContractorId] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [machineNo, setMachineNo] = useState("");
   const [rows, setRows] = useState<FormRow[]>([createEmptyRow()]);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -310,6 +312,8 @@ const SawmillProductionEntry = () => {
         total_amount: row.total_amount,
         notes: row.notes || null,
         log_id: row.log_id || null,
+        team_name: teamName || null,
+        machine_no: machineNo || null,
         created_by: user?.id,
       }));
 
@@ -479,7 +483,7 @@ const SawmillProductionEntry = () => {
         <CardContent>
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
             {/* Common Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <Label htmlFor="entry_date">Date</Label>
                 <Input
@@ -514,6 +518,24 @@ const SawmillProductionEntry = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="team_name">Team / Munsi</Label>
+                <Input
+                  id="team_name"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Team or Munsi name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="machine_no">Mill / Machine No</Label>
+                <Input
+                  id="machine_no"
+                  value={machineNo}
+                  onChange={(e) => setMachineNo(e.target.value)}
+                  placeholder="Machine number"
+                />
               </div>
             </div>
 

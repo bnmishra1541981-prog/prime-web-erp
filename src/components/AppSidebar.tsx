@@ -32,6 +32,9 @@ import {
   TreeDeciduous,
   Wallet,
   Factory,
+  FileSpreadsheet,
+  Percent,
+  DollarSign as DollarIcon,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
@@ -47,11 +50,14 @@ const menuItems = [
     subItems: [
       { title: 'Dashboard', url: '/sawmill/dashboard', icon: LayoutDashboard },
       { title: 'Saw Mills', url: '/sawmill/mills', icon: Factory },
-      { title: 'Contractors', url: '/sawmill/contractors', icon: Users },
-      { title: 'Production Entry', url: '/sawmill/production', icon: ClipboardList },
+      { title: 'Log Upload (Excel)', url: '/sawmill/log-upload', icon: FileSpreadsheet },
       { title: 'Log Inventory', url: '/sawmill/logs', icon: TreeDeciduous },
+      { title: 'Production Entry', url: '/sawmill/production', icon: ClipboardList },
       { title: 'Output Entry', url: '/sawmill/output', icon: Package },
+      { title: 'Contractors', url: '/sawmill/contractors', icon: Users },
       { title: 'Payments', url: '/sawmill/payments', icon: Wallet },
+      { title: 'Product Rates', url: '/sawmill/product-rates', icon: DollarIcon },
+      { title: 'Yield & Reports', url: '/sawmill/yield-report', icon: Percent },
       { title: 'Expenses', url: '/sawmill/expenses', icon: Receipt },
       { title: 'Employees', url: '/sawmill/employees', icon: Users },
       { title: 'My Orders', url: '/sawmill/my-orders', icon: Package },
