@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, TreeDeciduous, Plus, Trash2, Edit2, Save, X, Copy, Search } from "lucide-react";
+import { Loader2, TreeDeciduous, Plus, Trash2, Edit2, Save, X, Copy, Search, ScanLine } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { format } from "date-fns";
+import QrScanner from "@/components/sawmill/QrScanner";
 
 interface ProductionEntry {
   id: string;
@@ -80,6 +81,10 @@ const SawmillProductionEntry = () => {
   const [rows, setRows] = useState<FormRow[]>([createEmptyRow()]);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  
+  // QR Scanner
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [qrTargetRowId, setQrTargetRowId] = useState<string | null>(null);
   
   // Edit mode for existing entries
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -308,12 +313,12 @@ const SawmillProductionEntry = () => {
         created_by: user?.id,
       }));
 
-      // Update log status to 'in-process' for linked logs
+      // Update log status to 'in_process' for linked logs
       const logIds = validRows.filter(r => r.log_id).map(r => r.log_id!);
       if (logIds.length > 0) {
         await supabase
           .from("sawmill_logs")
-          .update({ status: "in-process" })
+          .update({ status: "in_process" })
           .in("id", logIds);
       }
 
@@ -559,6 +564,19 @@ const SawmillProductionEntry = () => {
                               title="Lookup tag"
                             >
                               <Search className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => {
+                                setQrTargetRowId(row.id);
+                                setQrScannerOpen(true);
+                              }}
+                              title="Scan QR"
+                            >
+                              <ScanLine className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -807,6 +825,27 @@ const SawmillProductionEntry = () => {
           )}
         </CardContent>
       </Card>
+      {/* QR Scanner */}
+      <QrScanner
+        open={qrScannerOpen}
+        onClose={() => { setQrScannerOpen(false); setQrTargetRowId(null); }}
+        onScan={(data) => {
+          try {
+            const parsed = JSON.parse(data);
+            const tag = parsed.tag || data;
+            const targetRow = qrTargetRowId || rows[rows.length - 1]?.id;
+            if (targetRow) {
+              lookupTag(targetRow, tag);
+            }
+          } catch {
+            // If not JSON, treat as tag number directly
+            const targetRow = qrTargetRowId || rows[rows.length - 1]?.id;
+            if (targetRow) {
+              lookupTag(targetRow, data);
+            }
+          }
+        }}
+      />
     </div>
   );
 };

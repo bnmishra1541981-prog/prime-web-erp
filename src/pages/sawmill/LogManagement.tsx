@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Plus, QrCode, Search, TreeDeciduous, Edit2, Trash2, Copy, ScanLine } from "lucide-react";
+import { Loader2, Plus, QrCode, Search, TreeDeciduous, Edit2, Trash2, Copy, ScanLine, Camera } from "lucide-react";
+import QrScanner from "@/components/sawmill/QrScanner";
 
 interface SawmillLog {
   id: string;
@@ -66,6 +67,8 @@ const LogManagement = () => {
   const [lookupResult, setLookupResult] = useState<SawmillLog | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [qrScanMode, setQrScanMode] = useState<"lookup" | "add">("lookup");
 
   useEffect(() => {
     if (user) fetchCompanies();
@@ -272,6 +275,9 @@ const LogManagement = () => {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-1" /> Add Log</Button>
             </DialogTrigger>
+            <Button variant="outline" onClick={() => { setQrScanMode("add"); setQrScannerOpen(true); }}>
+              <Camera className="h-4 w-4 mr-1" /> Scan QR to Add
+            </Button>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Log" : "Add New Log"}</DialogTitle>
@@ -438,6 +444,12 @@ const LogManagement = () => {
                   {lookupLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   Search
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setQrScanMode("lookup"); setQrScannerOpen(true); }}
+                >
+                  <Camera className="h-4 w-4 mr-1" /> Scan QR
+                </Button>
               </div>
 
               {lookupResult && (
@@ -588,6 +600,53 @@ const LogManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* QR Scanner */}
+      <QrScanner
+        open={qrScannerOpen}
+        onClose={() => setQrScannerOpen(false)}
+        onScan={(data) => {
+          try {
+            const parsed = JSON.parse(data);
+            const tag = parsed.tag || data;
+            if (qrScanMode === "lookup") {
+              setLookupTag(tag);
+              setLookupLoading(true);
+              supabase
+                .from("sawmill_logs")
+                .select("*")
+                .eq("company_id", selectedCompany)
+                .eq("tag_number", tag)
+                .maybeSingle()
+                .then(({ data: logData, error }) => {
+                  if (error || !logData) {
+                    setLookupResult(null);
+                    toast.error("Log not found for tag: " + tag);
+                  } else {
+                    setLookupResult(logData);
+                  }
+                  setLookupLoading(false);
+                });
+            } else {
+              setForm({
+                ...form,
+                tag_number: tag,
+                girth_cm: parsed.girth_cm?.toString() || "",
+                length_meter: parsed.length_m?.toString() || "",
+                grade: parsed.grade || "A",
+                notes: "",
+                saw_mill_id: form.saw_mill_id,
+              });
+              setDialogOpen(true);
+            }
+          } catch {
+            if (qrScanMode === "lookup") {
+              setLookupTag(data);
+              handleTagLookup();
+            }
+          }
+        }}
+      />
     </div>
   );
 };
