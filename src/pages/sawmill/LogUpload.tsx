@@ -103,6 +103,39 @@ const LogUpload = () => {
     return isNaN(num) ? 0 : num;
   };
 
+  const findHeaderRowIndex = (sheet: XLSX.WorkSheet): number => {
+    const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+    for (let r = range.s.r; r <= Math.min(range.e.r, 20); r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+        if (cell) {
+          const val = String(cell.v || "").toLowerCase().trim();
+          if (val === "barcode" || val === "tag no" || val === "tag") {
+            return r;
+          }
+        }
+      }
+    }
+    return 0;
+  };
+
+  const normalize = (s: string) => s.toLowerCase().replace(/[_\s.]+/g, "").trim();
+
+  const findVal = (row: any, aliases: string[]): any => {
+    const normalizedAliases = aliases.map(normalize);
+    for (const key of Object.keys(row)) {
+      const nk = normalize(key);
+      if (normalizedAliases.includes(nk)) return row[key];
+    }
+    for (const key of Object.keys(row)) {
+      const nk = normalize(key);
+      for (const alias of normalizedAliases) {
+        if (nk.startsWith(alias) || nk.includes(alias)) return row[key];
+      }
+    }
+    return "";
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,33 +146,35 @@ const LogUpload = () => {
       const data = evt.target?.result;
       const workbook = XLSX.read(data, { type: "binary" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+      // Find the actual header row dynamically
+      const headerRowIndex = findHeaderRowIndex(sheet);
+      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+      range.s.r = headerRowIndex;
+      sheet["!ref"] = XLSX.utils.encode_range(range);
+
       const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-      // Find header row - look for rows with SN/Barcode columns
       const parsed: ParsedLog[] = [];
       let snCounter = 0;
 
       for (const row of rows) {
-        // Try to find the barcode/tag field
-        const barcode = String(
-          row["Barcode"] || row["barcode"] || row["Tag No"] || row["tag_no"] || row["Tag"] || ""
-        ).trim();
+        const barcode = String(findVal(row, ["Barcode", "barcode", "Tag No", "tag_no", "Tag"])).trim();
 
-        if (!barcode || barcode === "Barcode" || barcode === "Tag No") continue;
+        if (!barcode || normalize(barcode) === "barcode" || normalize(barcode) === "tagno" || normalize(barcode) === "sn") continue;
+        if (/^[A-Za-z\s]+$/.test(barcode)) continue;
 
         snCounter++;
-        const sn = cleanNumericValue(row["SN"] || row["sn"] || row["S.No"] || snCounter);
-        const lot = String(row["LOT"] || row["Lot"] || row["lot_no"] || row["Lot No"] || "").trim();
-        const grade = String(row["Grade"] || row["grade"] || "A").trim();
-        const len = cleanNumericValue(row["LEN"] || row["Len"] || row["Length"] || row["Length (Meter)"] || row["length_meter"]);
-        const sed = cleanNumericValue(row["SED"] || row["Sed"] || row["Girth"] || row["Girth (Inches)"] || row["girth_inch"]);
-        const cbmProvided = cleanNumericValue(row["CBM"] || row["Cbm"] || row["cbm"] || row["CFT (Optional)"]);
+        const sn = cleanNumericValue(findVal(row, ["SN", "sn", "S.No", "Sr"])) || snCounter;
+        const lot = String(findVal(row, ["LOT", "Lot", "lot_no", "Lot No"]) || "").trim();
+        const grade = String(findVal(row, ["Grade", "grade"]) || "A").trim();
+        const len = cleanNumericValue(findVal(row, ["LEN", "Len", "Length", "Length (Meter)", "length_meter", "Sale Len"]));
+        const sed = cleanNumericValue(findVal(row, ["SED", "Sed"]));
+        const cbmProvided = cleanNumericValue(findVal(row, ["CBM", "Cbm", "cbm"]));
 
-        // SED is diameter in cm, convert to girth in inches for CFT calculation
         const girthInch = sedToGirthInch(sed);
-        const girthCm = sed * Math.PI; // circumference in cm
+        const girthCm = sed * Math.PI;
 
-        // Use provided CBM (convert to CFT) or calculate CFT
         let cft = 0;
         if (cbmProvided > 0) {
           cft = cbmToCft(cbmProvided);
